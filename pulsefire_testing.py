@@ -1,10 +1,10 @@
 #%% run_imports
 import asyncio
-import os
-from dotenv import load_dotenv
-from pulsefire.clients import RiotAPIClient, CDragonClient
 import aiohttp
 import sys
+from os import getenv
+from dotenv import load_dotenv
+from pulsefire.clients import RiotAPIClient
 
 #puuid = 4TpQ_LY5CQDij-Qi8UjOtM4I61M4HqGVXfY1bXi66MM4UpdeyuWnWKk7eFvZD5ESH659NcmEWBP0Wg
 
@@ -34,7 +34,7 @@ async def fetch_active_game(api_key, summoner):
 
 def __init__():
     load_dotenv()
-    riot_dev_key = os.getenv('RIOT_DEV_API_KEY')
+    riot_dev_key = getenv('RIOT_DEV_API_KEY')
     summoner = asyncio.run(fetch_summoner(riot_dev_key))
     active_game = asyncio.run(fetch_active_game(riot_dev_key, summoner))
     

@@ -1,8 +1,11 @@
 import requests
-# import base64
-# import wmi
-# import os
+import aiohttp
+import asyncio
+import sys
+from os import getenv
+from dotenv import load_dotenv
 from riotwatcher import LolWatcher, ApiError
+from pulsefire.clients import RiotAPIClient
 
 class LCU:
     def __init__(self):
@@ -99,51 +102,76 @@ class LCU:
         return r
     
 class SpellTracker:
-    def get_inspiration_ID(self):
-        for runeTree in self.dd_rune_IDs:
+    def fetch_data_dragon_relevant_data(self, riot_dev_key):
+        lol_watcher = LolWatcher(riot_dev_key)
+        dd_versions = lol_watcher.data_dragon.versions_for_region('oce')
+        dd_rune_data = lol_watcher.data_dragon.runes_reforged(dd_versions['v'])
+        dd_summoner_spells_data = lol_watcher.data_dragon.summoner_spells(dd_versions['v'])
+        return dd_rune_data, dd_summoner_spells_data
+
+    def parse_runeIDs_for_inspiration_ID(self, dd_rune_IDs):
+        for runeTree in dd_rune_IDs:
             if 'Inspiration' in runeTree['key']:
                 inspiration_ID = runeTree['id']
                 break
         return inspiration_ID
 
-    def get_CI_ID(self):
+    def parse_runeIDs_for_CI_ID(self, dd_rune_IDs):
         CI_key = 'CosmicInsight'
 
-        for i in range(len(self.dd_rune_IDs)):
-            if 'Inspiration' in self.dd_rune_IDs[i]['key']:
+        for i in range(len(dd_rune_IDs)):
+            if 'Inspiration' in dd_rune_IDs[i]['key']:
                 inspiration_tree_index = i
                 break
 
-        inspiration_slots = self.dd_rune_IDs[inspiration_tree_index]['slots']
+        inspiration_slots = dd_rune_IDs[inspiration_tree_index]['slots']
         for row in range(len(inspiration_slots)):
             for rune in range(len(inspiration_slots[row]['runes'])):
                 if CI_key in inspiration_slots[row]['runes'][rune]['key']:
                     return inspiration_slots[row]['runes'][rune]['id']
         
-    def get_player_list(self):
-        player_list = self.riot_endpoint.get_all_players().json()
+    async def fetch_summoner(api_key):
+    #get my 
+        async with RiotAPIClient(default_headers={"X-Riot-Token" : api_key}) as client:
+            account = await client.get_account_v1_by_riot_id(region='asia', game_name='Shiva', tag_line='1920')
+            summoner = await client.get_lol_summoner_v4_by_puuid(region='oc1', puuid=account['puuid'])
+        return summoner
+
+    async def fetch_active_game(api_key, summoner):
+        async with RiotAPIClient(default_headers={"X-Riot-Token" : api_key}) as client:
+            active_game = None
+            try:
+                active_game = await client.get_lol_spectator_v5_active_game_by_summoner(region='oc1', puuid=summoner['puuid'])
+            except aiohttp.ClientResponseError as e:
+                if e.status == 404: 
+                    sys.exit('Error 404: Summoner not in a game')
+                elif e.status == 401: 
+                    sys.exit('Error 401: Invalid API Key. Generate a new one at https://developer.riotgames.com')
+                elif e.status == 403:
+                    sys.exit('Error 403: Forbidden')
+                else:
+                    sys.exit(e)
+        return active_game
+
+    def get_player_list(self, lcu):
+        player_list = lcu.get_all_players().json()
         return player_list
 
-    def get_my_summoner_name(self):
-        active_player = self.riot_endpoint.get_active_player_data().json()
-        my_summoner_name = active_player['summonerName']
-        return my_summoner_name
-
-    def get_game_time(self):
-        game_time = self.riot_endpoint.get_game_stats().json()['gameTime']
+    def get_game_time(self, lcu):
+        game_time = lcu.get_game_stats().json()['gameTime']
         return game_time
 
-    def get_my_team(self):
-        for player in self.player_list:
-            if player['summonerName'] in self.my_summoner_name:
+    def get_my_team(self, my_summoner_name, player_list):
+        for player in player_list:
+            if player['summonerName'] in my_summoner_name:
                 my_team = player['team']
                 break
         return my_team
 
-    def get_enemy_list(self):
+    def get_enemy_list(self, my_team, player_list):
         enemy_list = []
-        for player in self.player_list:
-            if self.my_team not in player['team']:
+        for player in player_list:
+            if my_team not in player['team']:
                 enemy_list.append(player)
             if (len(enemy_list) >= 5 ):
                 break
@@ -175,23 +203,23 @@ class SpellTracker:
         new_dict['summonerHasteSources'] = self.get_summoner_haste_sources_list(enemy)
         return new_dict
 
-    def simplify_enemy_list(self):
+    def simplify_enemy_list(self, enemy_list):
         new_enemy_list = []
-        for enemy in self.enemy_list:
+        for enemy in enemy_list:
             new_enemy_list.append(self.get_relevent_enemy_data_dict(enemy))
         return new_enemy_list
 
-    def get_enemies_with_inspiration(self):
+    def get_enemies_with_inspiration(self, enemy_list):
         enemies_with_inspiration = []
-        for enemy in self.enemy_list:
+        for enemy in enemy_list:
             if enemy['summonerHasteSources']['Inspiration']:
                 enemies_with_inspiration.append(enemy)
         return enemies_with_inspiration
     
-    def check_for_Cosmic_Insight(self):
+    def check_for_Cosmic_Insight(self, enemies_with_inspiration, active_game):
         checklist = []
-        for enemy in self.enemies_with_inspiration:
-            for participant in self.game['participants']:
+        for enemy in enemies_with_inspiration:
+            for participant in active_game['participants']:
                 if participant['summonerName'] in enemy['summonerName']:
                     if self.cosmic_insight_ID in participant['perks']['perkIDs']:
                         checklist.append(True)
@@ -199,78 +227,85 @@ class SpellTracker:
                         checklist.append(False)
         return checklist
             
-    def update_summoner_haste_sources(self):
-        for i in len(self.enemies_with_inspiration):
-            self.enemies_with_inspiration[i]['summonerHasteSources']['Cosmic Insight'] = self.enemies_with_Cosmic_Insight_checklist[i]
+    def update_summoner_haste_sources(self, enemies_with_inspiration, enemies_with_Cosmic_Insight_checklist):
+        for i in len(enemies_with_inspiration):
+            enemies_with_inspiration[i]['summonerHasteSources']['Cosmic Insight'] = enemies_with_Cosmic_Insight_checklist[i]
 
-    def calculate_enemy_summoner_haste(self):
-        for enemy in self.enemy_list:
+    def calculate_enemy_summoner_haste(self, enemy_list):
+        for enemy in enemy_list:
             summoner_haste = 0
             for source in self.summoner_haste_sources:
                 if enemy['summonerHasteSources'][source]:
                     summoner_haste += self.summoner_haste_sources[source]
             enemy['summonerHaste'] = summoner_haste
 
-    def find_unique_summoner_spells(self):
+    def find_unique_summoner_spells(self, enemy_list):
         summoner_list = {}
-        for enemy in self.enemy_list:
+        for enemy in enemy_list:
             for summoner_spell in enemy['summonerSpells']:
                 if summoner_spell['displayName'] not in summoner_list:
                     summoner_list[summoner_spell['displayName']] = 0
         return summoner_list
                 
-    def create_summoner_cooldown_dict(self):
+    def create_summoner_cooldown_dict(self, unique_summoner_spells, dd_summoner_spells_data):
         summoner_cooldown_dict = {}
-        for summoner_spell in self.unique_summoner_spells:
-            for summoner, value in self.dd_summoner_spells_data['data'].items():
+        for summoner_spell in unique_summoner_spells:
+            for summoner, value in dd_summoner_spells_data['data'].items():
                 if summoner_spell in value['name'] and 'CLASSIC' in value['modes']:
                     summoner_cooldown_dict[summoner_spell] = value['cooldown'][0]
 
+    def find_summoner_cooldowns(self):
+        pass
 
 
     def __init__(self):
-        my_region = 'OC1'
-        self.my_summoner_name = 'Shiva'
-        self.lol_watcher = LolWatcher('RGAPI-0001a48a-e26e-4cd8-a90e-6a0456bac323')
+        load_dotenv()
+        self.riot_dev_key = getenv('RIOT_DEV_API_KEY')
+        self.my_region = 'OC1'
+        self.my_summoner_name = getenv('SUMMONER_NAME')
         self.summoner_haste_sources = {
             "Ionian Boots of Lucidity": 12,
             "Dawncore": 18,
             "Cosmic Insight": 18
         }
+
+    def main(self):
+        lcu = LCU()
+        lcu.load_start_data()
+
+        rune_data, summoner_spell_data = self.fetch_data_dragon_relevant_data(self.riot_dev_key)
+
+        self.inspiration_ID = self.parse_runeIDs_for_inspiration_ID(rune_data)
+        self.cosmic_insight_ID = self.parse_runeIDs_for_CI_ID(rune_data)
+
+        summoner = asyncio.run(self.fetch_summoner(self.riot_dev_key))
+        active_game = asyncio.run(self.fetch_active_game(self.riot_dev_key, summoner))
+
+        player_list = self.get_player_list(lcu)
+        game_time = self.get_game_time(lcu)
+        my_team = self.get_my_team(self.my_summoner_name, player_list)
         
-        self.lcu = LCU()
-        self.lcu.load_start_data()
-
-        self.dd_versions = self.lol_watcher.data_dragon.versions_for_region('oce')
-
-        self.dd_rune_IDs = self.lol_watcher.data_dragon.runes_reforged(self.dd_versions['v'])
-        self.inspiration_ID = self.get_inspiration_ID()
-        self.cosmic_insight_ID = self.get_CI_ID()
-
-        self.me = self.lol_watcher.summoner.by_name(my_region, self.my_summoner_name)
-        self.game = self.lol_watcher.spectator.by_summoner(my_region, self.me['id'])
-        self.dd_summoner_spells_data = self.lol_watcher.data_dragon.summoner_spells(self.dd_versions['v'])
-
-
-        self.player_list = self.get_player_list()
-        self.my_summoner_name = self.get_my_summoner_name()
-        self.game_time = self.get_game_time()
-        self.my_team = self.get_my_team()
-        self.enemy_list = self.get_enemy_list()
-        self.enemy_list = self.simplify_enemy_list()
-        self.enemies_with_inspiration = self.get_enemies_with_inspiration()
-        self.enemies_with_Cosmic_Insight_checklist = self.check_for_Cosmic_Insight()
-        self.do_enemies_have_Cosmic_Insight = self.check_for_Cosmic_Insight()
-        self.update_summoner_haste_sources()
-        self.calculate_enemy_summoner_haste()
-        self.unique_summoner_spells = self.find_unique_summoner_spells()
+        enemy_list = self.get_enemy_list(my_team, player_list)
+        enemy_list = self.simplify_enemy_list(enemy_list)
+        
+        enemies_with_inspiration = self.get_enemies_with_inspiration(enemy_list)
+        enemies_with_Cosmic_Insight_checklist = self.check_for_Cosmic_Insight(enemies_with_inspiration, active_game)
+        
+        self.update_summoner_haste_sources(enemies_with_inspiration, enemies_with_Cosmic_Insight_checklist)
+        self.calculate_enemy_summoner_haste(enemy_list)
+        
+        unique_summoner_spells = self.find_unique_summoner_spells(enemy_list)
+        summoner_cd_dict = self.create_summoner_cooldown_dict(unique_summoner_spells, summoner_spell_data)
         self.find_summoner_cooldowns()
+
     
 def __init__():
     st = SpellTracker()
+    st.main()
 
 
 #API_Key_Link = 'https://developer.riotgames.com'
 __init__()
 #Use pulsefire for 1. current game data
-#Use data_dragon for 1. summoner spells, 2. items
+#Use riot_watcher/data_dragon for 1. summoner spells, 2. items
+#Use lcu for 1. all players data, 2. game time
