@@ -254,6 +254,7 @@ class SpellTracker:
                 if summoner_spell in value['name'] and 'CLASSIC' in value['modes']:
                     summoner_cooldown_dict[summoner_spell] = value['cooldown'][0]
 
+    #TODO: Add logic for calculating cds for both summs for each enemy and add to their dict. Special handling for Teleport - match name in database -> name in game ('Teleport' in 'Unleashed Teleport'), if game time >= 10mins, cd = base - (10 x Level) min 240 (max lvl = 10)
     def find_summoner_cooldowns(self):
         pass
 
