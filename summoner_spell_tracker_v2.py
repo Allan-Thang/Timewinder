@@ -10,7 +10,7 @@ from pulsefire.clients import RiotAPIClient
 class LCU:
     def __init__(self):
         self.install_directory = None
-        self.port = None
+        self.port = '2999'
         self.auth_key = None
         self.lcu_url = 'https://127.0.0.1'
         self.SSL_cert = 'C:\\Users\\Shiva\\Downloads\\riotgames.pem'
@@ -49,8 +49,8 @@ class LCU:
     #     self.auth_key = self.load_auth_key()
     #     return self.install_directory, self.port, self.auth_key
 
-    def load_start_data(self):
-        self.port = '2999'
+    # def load_start_data(self):
+    #     self.port = '2999'
 
     def get_all_game_data(self):
         r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/allgamedata', headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=False)
@@ -102,8 +102,8 @@ class LCU:
         return r
     
 class SpellTracker:
-    def fetch_data_dragon_relevant_data(self, riot_dev_key):
-        lol_watcher = LolWatcher(riot_dev_key)
+    def fetch_data_dragon_relevant_data(self):
+        lol_watcher = LolWatcher(self.riot_dev_key)
         dd_versions = lol_watcher.data_dragon.versions_for_region('oce')
         dd_rune_data = lol_watcher.data_dragon.runes_reforged(dd_versions['v'])
         dd_summoner_spells_data = lol_watcher.data_dragon.summoner_spells(dd_versions['v'])
@@ -199,7 +199,14 @@ class SpellTracker:
         new_dict['summonerName'] = enemy['summonerName']
         new_dict['championName'] = enemy['championName']
         new_dict['level'] = enemy['level']
+    
         new_dict['summonerSpells'] = enemy['summonerSpells']
+        for summoner_spell in new_dict['summonerSpells']:
+            summoner_spell['name'] = summoner_spell['displayName']
+            # Change 'Unleashed Teleport' -> 'Teleport'
+            if 'Teleport' in summoner_spell['name']:
+                summoner_spell['name'] = 'Teleport'
+
         new_dict['summonerHasteSources'] = self.get_summoner_haste_sources_list(enemy)
         return new_dict
 
@@ -227,11 +234,19 @@ class SpellTracker:
                         checklist.append(False)
         return checklist
             
-    def update_summoner_haste_sources(self, enemies_with_inspiration, enemies_with_Cosmic_Insight_checklist):
+    def update_enemies_with_cosmic_insight(self, enemies_with_inspiration, enemies_with_Cosmic_Insight_checklist):
         for i in len(enemies_with_inspiration):
             enemies_with_inspiration[i]['summonerHasteSources']['Cosmic Insight'] = enemies_with_Cosmic_Insight_checklist[i]
 
-    def calculate_enemy_summoner_haste(self, enemy_list):
+    def find_unique_summoner_spells(self, enemy_list):
+        summoner_list = {}
+        for enemy in enemy_list:
+            for summoner_spell in enemy['summonerSpells']:
+                if summoner_spell['name'] not in summoner_list:
+                    summoner_list[summoner_spell['name']] = 0
+        return summoner_list
+    
+    def calculate_all_enemies_summoner_haste(self, enemy_list):
         for enemy in enemy_list:
             summoner_haste = 0
             for source in self.summoner_haste_sources:
@@ -239,24 +254,40 @@ class SpellTracker:
                     summoner_haste += self.summoner_haste_sources[source]
             enemy['summonerHaste'] = summoner_haste
 
-    def find_unique_summoner_spells(self, enemy_list):
-        summoner_list = {}
-        for enemy in enemy_list:
-            for summoner_spell in enemy['summonerSpells']:
-                if summoner_spell['displayName'] not in summoner_list:
-                    summoner_list[summoner_spell['displayName']] = 0
-        return summoner_list
-                
     def create_summoner_cooldown_dict(self, unique_summoner_spells, dd_summoner_spells_data):
         summoner_cooldown_dict = {}
         for summoner_spell in unique_summoner_spells:
             for summoner, value in dd_summoner_spells_data['data'].items():
-                if summoner_spell in value['name'] and 'CLASSIC' in value['modes']:
-                    summoner_cooldown_dict[summoner_spell] = value['cooldown'][0]
+                if value['name'] in summoner_spell and 'CLASSIC' in value['modes']:
+                    summoner_cooldown_dict[summoner_spell['name']] = value['cooldown'][0]
+    
+    def update_all_enemies_base_summoner_cooldowns(self, enemy_list, summoner_cd_dict):
+        for enemy in enemy_list:
+            self.update_enemy_base_summoner_cooldowns(enemy, summoner_cd_dict)
+
+    def update_enemy_base_summoner_cooldowns(self, enemy, summoner_cd_dict):
+        for enemy_summoner_spell in enemy['summonerSpells']:
+            for summoner_spell, cooldown in summoner_cd_dict:
+                if enemy_summoner_spell['name'] in summoner_spell:
+                    enemy_summoner_spell['baseCooldown'] = cooldown
+
+
 
     #TODO: Add logic for calculating cds for both summs for each enemy and add to their dict. Special handling for Teleport - match name in database -> name in game ('Teleport' in 'Unleashed Teleport'), if game time >= 10mins, cd = base - (10 x Level) min 240 (max lvl = 10)
-    def find_summoner_cooldowns(self):
-        pass
+    def calculate_all_enemies_starting_cooldown(self, enemy_list):
+        for enemy in enemy_list:
+            self.calculate_enemy_starting_cooldown(enemy)
+
+    def calculate_enemy_starting_cooldown(self, enemy):
+        for summoner_spell in enemy['summonerSpells']:
+            summoner_spell['startingCooldown'] = 0
+
+
+    def calculate_enemy_summoner_cooldowns(self):
+        self.calculate_all_enemies_summoner_haste(self.enemy_list)
+        
+    def calculate_starting_cooldown_from_haste(base_cooldown, haste):
+        starting_cooldown = base_cooldown * (100/(100 + haste))
 
 
     def __init__(self):
@@ -272,9 +303,8 @@ class SpellTracker:
 
     def main(self):
         lcu = LCU()
-        lcu.load_start_data()
 
-        rune_data, summoner_spell_data = self.fetch_data_dragon_relevant_data(self.riot_dev_key)
+        rune_data, summoner_spell_data = self.fetch_data_dragon_relevant_data()
 
         self.inspiration_ID = self.parse_runeIDs_for_inspiration_ID(rune_data)
         self.cosmic_insight_ID = self.parse_runeIDs_for_CI_ID(rune_data)
@@ -286,19 +316,20 @@ class SpellTracker:
         game_time = self.get_game_time(lcu)
         my_team = self.get_my_team(self.my_summoner_name, player_list)
         
-        enemy_list = self.get_enemy_list(my_team, player_list)
-        enemy_list = self.simplify_enemy_list(enemy_list)
+        self.enemy_list = self.get_enemy_list(my_team, player_list)
+        self.enemy_list = self.simplify_enemy_list(self.enemy_list)
         
-        enemies_with_inspiration = self.get_enemies_with_inspiration(enemy_list)
+        enemies_with_inspiration = self.get_enemies_with_inspiration(self.enemy_list)
         enemies_with_Cosmic_Insight_checklist = self.check_for_Cosmic_Insight(enemies_with_inspiration, active_game)
-        
-        self.update_summoner_haste_sources(enemies_with_inspiration, enemies_with_Cosmic_Insight_checklist)
-        self.calculate_enemy_summoner_haste(enemy_list)
-        
-        unique_summoner_spells = self.find_unique_summoner_spells(enemy_list)
-        summoner_cd_dict = self.create_summoner_cooldown_dict(unique_summoner_spells, summoner_spell_data)
-        self.find_summoner_cooldowns()
+        self.update_enemies_with_cosmic_insight(enemies_with_inspiration, enemies_with_Cosmic_Insight_checklist)
 
+        unique_summoner_spells = self.find_unique_summoner_spells(self.enemy_list)
+        summoner_cd_dict = self.create_summoner_cooldown_dict(unique_summoner_spells, summoner_spell_data)
+        
+        self.update_all_enemies_base_summoner_cooldowns(self.enemy_list, summoner_cd_dict)
+        
+        self.calculate_enemy_summoner_cooldowns()
+        
     
 def __init__():
     st = SpellTracker()
