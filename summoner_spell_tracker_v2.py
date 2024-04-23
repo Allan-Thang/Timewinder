@@ -130,14 +130,14 @@ class SpellTracker:
                 if CI_key in inspiration_slots[row]['runes'][rune]['key']:
                     return inspiration_slots[row]['runes'][rune]['id']
         
-    async def fetch_summoner(api_key):
+    async def fetch_summoner(self, api_key):
     #get my 
         async with RiotAPIClient(default_headers={"X-Riot-Token" : api_key}) as client:
             account = await client.get_account_v1_by_riot_id(region='asia', game_name='Shiva', tag_line='1920')
             summoner = await client.get_lol_summoner_v4_by_puuid(region='oc1', puuid=account['puuid'])
         return summoner
 
-    async def fetch_active_game(api_key, summoner):
+    async def fetch_active_game(self, api_key, summoner):
         async with RiotAPIClient(default_headers={"X-Riot-Token" : api_key}) as client:
             active_game = None
             try:
@@ -246,13 +246,12 @@ class SpellTracker:
                     summoner_list[summoner_spell['name']] = 0
         return summoner_list
     
-    def calculate_all_enemies_summoner_haste(self, enemy_list):
-        for enemy in enemy_list:
-            summoner_haste = 0
-            for source in self.summoner_haste_sources:
-                if enemy['summonerHasteSources'][source]:
-                    summoner_haste += self.summoner_haste_sources[source]
-            enemy['summonerHaste'] = summoner_haste
+    def calculate_enemy_summoner_haste(self, enemy):
+        summoner_haste = 0
+        for source in self.summoner_haste_sources:
+            if enemy['summonerHasteSources'][source]:
+                summoner_haste += self.summoner_haste_sources[source]
+        enemy['summonerHaste'] = summoner_haste
 
     def create_summoner_cooldown_dict(self, unique_summoner_spells, dd_summoner_spells_data):
         summoner_cooldown_dict = {}
@@ -260,6 +259,7 @@ class SpellTracker:
             for summoner, value in dd_summoner_spells_data['data'].items():
                 if value['name'] in summoner_spell and 'CLASSIC' in value['modes']:
                     summoner_cooldown_dict[summoner_spell['name']] = value['cooldown'][0]
+        return summoner_cooldown_dict
     
     def update_all_enemies_base_summoner_cooldowns(self, enemy_list, summoner_cd_dict):
         for enemy in enemy_list:
@@ -274,21 +274,25 @@ class SpellTracker:
 
 
     #TODO: Add logic for calculating cds for both summs for each enemy and add to their dict. Special handling for Teleport - match name in database -> name in game ('Teleport' in 'Unleashed Teleport'), if game time >= 10mins, cd = base - (10 x Level) min 240 (max lvl = 10)
-    def calculate_all_enemies_starting_cooldown(self, enemy_list):
-        for enemy in enemy_list:
-            self.calculate_enemy_starting_cooldown(enemy)
-
-    def calculate_enemy_starting_cooldown(self, enemy):
+    def update_enemy_summoner_spell_starting_cooldown(self, enemy):
         for summoner_spell in enemy['summonerSpells']:
-            summoner_spell['startingCooldown'] = 0
+            base_cooldown = summoner_spell['baseCooldown']
+            if 'Teleport' in summoner_spell['name']:
+                base_cooldown = self.enemy_teleport_base_cooldown(enemy, base_cooldown)
+            summoner_spell['startingCooldown'] = self.starting_cooldown(base_cooldown, enemy['summonerHaste'])
 
+    def enemy_teleport_base_cooldown(self, enemy, base_cooldown):
+        if (self.game_time) >= 600:
+            return base_cooldown - (10 * min(enemy['level'], 10))
+        return base_cooldown
+        
+    def starting_cooldown(base_cooldown, haste):
+        return (base_cooldown * (100/(100 + haste)))
 
     def calculate_enemy_summoner_cooldowns(self):
-        self.calculate_all_enemies_summoner_haste(self.enemy_list)
-        
-    def calculate_starting_cooldown_from_haste(base_cooldown, haste):
-        starting_cooldown = base_cooldown * (100/(100 + haste))
-
+        for enemy in self.enemy_list:
+            self.calculate_enemy_summoner_haste(enemy)
+            self.update_enemy_summoner_spell_starting_cooldown(enemy)
 
     def __init__(self):
         load_dotenv()
@@ -313,7 +317,7 @@ class SpellTracker:
         active_game = asyncio.run(self.fetch_active_game(self.riot_dev_key, summoner))
 
         player_list = self.get_player_list(lcu)
-        game_time = self.get_game_time(lcu)
+        self.game_time = self.get_game_time(lcu)
         my_team = self.get_my_team(self.my_summoner_name, player_list)
         
         self.enemy_list = self.get_enemy_list(my_team, player_list)
