@@ -160,6 +160,10 @@ class SpellTracker:
     def get_game_time(self, lcu):
         game_time = lcu.get_game_stats().json()['gameTime']
         return game_time
+    
+    def get_game_mode(self, lcu):
+        game_mode = lcu.get_game_stats().json()['gameMode']
+        return game_mode
 
     def get_my_team(self, my_summoner_name, player_list):
         for player in player_list:
@@ -179,10 +183,10 @@ class SpellTracker:
 
     def get_summoner_haste_sources_list(self, enemy):
         summoner_haste_sources = {}
-        if 'Ionian Boots of Lucidity' in enemy['item']:
-            summoner_haste_sources['Ionian Boots'] = True
+        if 'Ionian Boots of Lucidity' in enemy['items']:
+            summoner_haste_sources['Ionian Boots of Lucidity'] = True
         else:
-            summoner_haste_sources['Ionian Boots'] = False
+            summoner_haste_sources['Ionian Boots of Lucidity'] = False
 
         if 'Dawncore' in enemy['items']:
             summoner_haste_sources['Dawncore'] = True
@@ -194,6 +198,13 @@ class SpellTracker:
         else:
             summoner_haste_sources['Inspiration'] = False
 
+        if self.game_mode == 'ARAM':
+            summoner_haste_sources['ARAM'] = True
+        else:
+            summoner_haste_sources['ARAM'] = False
+        
+        return summoner_haste_sources
+
     def get_relevent_enemy_data_dict(self, enemy):
         new_dict = {}
         new_dict['summonerName'] = enemy['summonerName']
@@ -201,9 +212,12 @@ class SpellTracker:
         new_dict['level'] = enemy['level']
     
         new_dict['summonerSpells'] = enemy['summonerSpells']
-        for summoner_spell in new_dict['summonerSpells']:
-            summoner_spell['name'] = summoner_spell['displayName']
-            # Change 'Unleashed Teleport' -> 'Teleport'
+        for key, summoner_spell in new_dict['summonerSpells'].items():
+            spell_name = summoner_spell['displayName']
+            summoner_spell = {}
+            summoner_spell['name'] = spell_name
+            new_dict['summonerSpells'][key] = summoner_spell
+
             if 'Teleport' in summoner_spell['name']:
                 summoner_spell['name'] = 'Teleport'
 
@@ -216,32 +230,44 @@ class SpellTracker:
             new_enemy_list.append(self.get_relevent_enemy_data_dict(enemy))
         return new_enemy_list
 
-    def get_enemies_with_inspiration(self, enemy_list):
-        enemies_with_inspiration = []
-        for enemy in enemy_list:
-            if enemy['summonerHasteSources']['Inspiration']:
-                enemies_with_inspiration.append(enemy)
-        return enemies_with_inspiration
+    # def get_enemies_with_inspiration(self, enemy_list):
+    #     enemies_with_inspiration = []
+    #     for enemy in enemy_list:
+    #         if enemy['summonerHasteSources']['Inspiration']:
+    #             enemies_with_inspiration.append(enemy)
+    #     return enemies_with_inspiration
     
-    def check_for_Cosmic_Insight(self, enemies_with_inspiration, active_game):
-        checklist = []
-        for enemy in enemies_with_inspiration:
-            for participant in active_game['participants']:
-                if participant['summonerName'] in enemy['summonerName']:
-                    if self.cosmic_insight_ID in participant['perks']['perkIDs']:
-                        checklist.append(True)
-                    else:
-                        checklist.append(False)
-        return checklist
+    # def check_for_Cosmic_Insight(self, enemies_with_inspiration, active_game):
+    #     checklist = []
+    #     for enemy in enemies_with_inspiration:
+    #         for participant in active_game['participants']:
+    #             if participant['summonerName'] in enemy['summonerName']:
+    #                 if self.cosmic_insight_ID in participant['perks']['perkIDs']:
+    #                     checklist.append(True)
+    #                 else:
+    #                     checklist.append(False)
+    #     return checklist
             
-    def update_enemies_with_cosmic_insight(self, enemies_with_inspiration, enemies_with_Cosmic_Insight_checklist):
-        for i in len(enemies_with_inspiration):
-            enemies_with_inspiration[i]['summonerHasteSources']['Cosmic Insight'] = enemies_with_Cosmic_Insight_checklist[i]
+    # def update_enemies_with_cosmic_insight(self, enemies_with_inspiration, enemies_with_Cosmic_Insight_checklist):
+    #     for i in range(len(enemies_with_inspiration)):
+    #         enemies_with_inspiration[i]['summonerHasteSources']['Cosmic Insight'] = enemies_with_Cosmic_Insight_checklist[i]
+
+    def check_for_cosmic_insight(self, enemy_list, active_game):
+        for enemy in enemy_list:
+            for participant in active_game['participants']:
+                if enemy['summonerHasteSources']['Inspiration'] and participant['summonerName'] in enemy['summonerName']:
+                    if self.cosmic_insight_ID in participant['perks']['perkIDs']:
+                        enemy['summonerHasteSources']['Cosmic Insight'] = True
+                    else:
+                        enemy['summonerHasteSources']['Cosmic Insight'] = False
+                else:
+                    enemy['summonerHasteSources']['Cosmic Insight'] = False
+
 
     def find_unique_summoner_spells(self, enemy_list):
         summoner_list = {}
         for enemy in enemy_list:
-            for summoner_spell in enemy['summonerSpells']:
+            for _, summoner_spell in enemy['summonerSpells'].items():
                 if summoner_spell['name'] not in summoner_list:
                     summoner_list[summoner_spell['name']] = 0
         return summoner_list
@@ -255,10 +281,10 @@ class SpellTracker:
 
     def create_summoner_cooldown_dict(self, unique_summoner_spells, dd_summoner_spells_data):
         summoner_cooldown_dict = {}
-        for summoner_spell in unique_summoner_spells:
+        for summoner_spell_name, _ in unique_summoner_spells.items():
             for summoner, value in dd_summoner_spells_data['data'].items():
-                if value['name'] in summoner_spell and 'CLASSIC' in value['modes']:
-                    summoner_cooldown_dict[summoner_spell['name']] = value['cooldown'][0]
+                if value['name'] in summoner_spell_name and self.game_mode in value['modes']:
+                    summoner_cooldown_dict[summoner_spell_name] = value['cooldown'][0]
         return summoner_cooldown_dict
     
     def update_all_enemies_base_summoner_cooldowns(self, enemy_list, summoner_cd_dict):
@@ -266,27 +292,29 @@ class SpellTracker:
             self.update_enemy_base_summoner_cooldowns(enemy, summoner_cd_dict)
 
     def update_enemy_base_summoner_cooldowns(self, enemy, summoner_cd_dict):
-        for enemy_summoner_spell in enemy['summonerSpells']:
-            for summoner_spell, cooldown in summoner_cd_dict:
+        for key, enemy_summoner_spell in enemy['summonerSpells'].items():
+            for summoner_spell, cooldown in summoner_cd_dict.items():
                 if enemy_summoner_spell['name'] in summoner_spell:
                     enemy_summoner_spell['baseCooldown'] = cooldown
+                    enemy['summonerSpells'][key] = enemy_summoner_spell
 
 
 
     #TODO: Add logic for calculating cds for both summs for each enemy and add to their dict. Special handling for Teleport - match name in database -> name in game ('Teleport' in 'Unleashed Teleport'), if game time >= 10mins, cd = base - (10 x Level) min 240 (max lvl = 10)
     def update_enemy_summoner_spell_starting_cooldown(self, enemy):
-        for summoner_spell in enemy['summonerSpells']:
+        for key, summoner_spell in enemy['summonerSpells'].items():
             base_cooldown = summoner_spell['baseCooldown']
             if 'Teleport' in summoner_spell['name']:
                 base_cooldown = self.enemy_teleport_base_cooldown(enemy, base_cooldown)
             summoner_spell['startingCooldown'] = self.starting_cooldown(base_cooldown, enemy['summonerHaste'])
+            enemy['summonerSpells'][key] = summoner_spell
 
     def enemy_teleport_base_cooldown(self, enemy, base_cooldown):
         if (self.game_time) >= 600:
             return base_cooldown - (10 * min(enemy['level'], 10))
         return base_cooldown
         
-    def starting_cooldown(base_cooldown, haste):
+    def starting_cooldown(self, base_cooldown, haste):
         return (base_cooldown * (100/(100 + haste)))
 
     def calculate_enemy_summoner_cooldowns(self):
@@ -302,7 +330,8 @@ class SpellTracker:
         self.summoner_haste_sources = {
             "Ionian Boots of Lucidity": 12,
             "Dawncore": 18,
-            "Cosmic Insight": 18
+            "Cosmic Insight": 18,
+            "ARAM": 70,
         }
 
     def main(self):
@@ -318,14 +347,18 @@ class SpellTracker:
 
         player_list = self.get_player_list(lcu)
         self.game_time = self.get_game_time(lcu)
+        self.game_mode = self.get_game_mode(lcu)
         my_team = self.get_my_team(self.my_summoner_name, player_list)
         
         self.enemy_list = self.get_enemy_list(my_team, player_list)
         self.enemy_list = self.simplify_enemy_list(self.enemy_list)
         
-        enemies_with_inspiration = self.get_enemies_with_inspiration(self.enemy_list)
-        enemies_with_Cosmic_Insight_checklist = self.check_for_Cosmic_Insight(enemies_with_inspiration, active_game)
-        self.update_enemies_with_cosmic_insight(enemies_with_inspiration, enemies_with_Cosmic_Insight_checklist)
+        # enemies_with_inspiration = self.get_enemies_with_inspiration(self.enemy_list)
+        # enemies_with_Cosmic_Insight_checklist = self.check_for_Cosmic_Insight(enemies_with_inspiration, active_game)
+        # self.update_enemies_with_cosmic_insight(enemies_with_inspiration, enemies_with_Cosmic_Insight_checklist)
+
+        for enemy in self.enemy_list:
+            enemy['summonerHasteSources']['Cosmic Insight'] = self.check_for_cosmic_insight(self.enemy_list, active_game)
 
         unique_summoner_spells = self.find_unique_summoner_spells(self.enemy_list)
         summoner_cd_dict = self.create_summoner_cooldown_dict(unique_summoner_spells, summoner_spell_data)
@@ -333,6 +366,8 @@ class SpellTracker:
         self.update_all_enemies_base_summoner_cooldowns(self.enemy_list, summoner_cd_dict)
         
         self.calculate_enemy_summoner_cooldowns()
+
+        print(self.enemy_list[0]['summonerSpells'])
         
     
 def __init__():
