@@ -1,105 +1,12 @@
-import requests
 import aiohttp
 import asyncio
 import sys
+from cooldown_timer import CooldownTimer
+from lcu import LCU
 from os import getenv
 from dotenv import load_dotenv
 from riotwatcher import LolWatcher, ApiError
 from pulsefire.clients import RiotAPIClient
-
-class LCU:
-    def __init__(self):
-        self.install_directory = None
-        self.port = '2999'
-        self.auth_key = None
-        self.lcu_url = 'https://127.0.0.1'
-        self.SSL_cert = 'C:\\Users\\Shiva\\Downloads\\riotgames.pem'
-
-    # @staticmethod
-    # def find_client_lockfile():
-    #     c = wmi.WMI()
-    #     for process in c.Win32_Process():
-    #         if process.name == 'LeagueClientUx.exe':
-    #             cmd = process.CommandLine
-    #             for segment in cmd.split('" "'):
-    #                 if '--app-port' in segment:
-    #                     port = int(segment.split('=')[1])
-    #                 if '--install-directory' in segment:
-    #                     install_directory = segment.split('=')[1]
-    #                 # break
-            
-    #     return install_directory, port
-    
-    # @staticmethod
-    # def parse_locklife(install_directory):
-    #     lockfile = os.path.join(install_directory, 'lockfile')
-    #     with open(lockfile) as f:
-    #         content = f.read()
-    #     content = content.split(':')
-    #     process, PID, port, password, protocol = content
-    #     return process, PID, port, password, protocol
-
-    # def load_auth_key(self):
-    #     process, PID, port, password, protocol = self.parse_locklife(self.install_directory)
-    #     auth_key = base64.b64encode(f'riot{password}'.encode()).decode()
-    #     return auth_key
-
-    # def load_start_data(self):
-    #     self.install_directory, self.port = self.find_client_lockfile()
-    #     self.auth_key = self.load_auth_key()
-    #     return self.install_directory, self.port, self.auth_key
-
-    # def load_start_data(self):
-    #     self.port = '2999'
-
-    def get_all_game_data(self):
-        r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/allgamedata', headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=False)
-        return r
-    
-    def get_active_player_data(self):
-        r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/activeplayer', headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=f'{self.SSL_cert}')
-        return r
-    
-    # def get_active_player_name(self):
-    #     r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/activeplayername', headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=f'{self.SSL_cert}')
-    #     return r
-    
-    # def get_active_player_abilities(self):
-    #     r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/activeplayerabilities', headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=f'{self.SSL_cert}')
-    #     return r
-    
-    # def get_active_player_runes(self):
-    #     r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/activeplayerrunes', headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=f'{self.SSL_cert}')
-    #     return r
-    
-    def get_all_players(self):
-        r = requests.get(f'{self.lcu_url}:2999/liveclientdata/playerlist', headers={'Accept': '*/*'}, verify=f'{self.SSL_cert}')
-        # print(r.json())
-        return r
-    
-    # def get_target_player_scores(self, targetPlayer):
-    #     r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/playerscores?summonerName={targetPlayer}', headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=f'{self.SSL_cert}')
-    #     return r
-    
-    def get_target_player_summoner_spells(self, targetPlayer):
-        r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/playersummonerspells?summonerName={targetPlayer}', headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=f'{self.SSL_cert}')
-        return r
-    
-    # def get_target_player_basic_runes(self, targetPlayer):
-    #     r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/playermainrunes?summonerName={targetPlayer}')
-    #     return r
-    
-    def get_target_player_items(self, targetPlayer):
-        r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/playeritems?summonerName={targetPlayer}', headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=f'{self.SSL_cert}')
-        return r
-    
-    # def get_events(self):
-    #     r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/eventdata', headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=f'{self.SSL_cert}')
-    #     return r
-    
-    def get_game_stats(self):
-        r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/gamestats', headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=f'{self.SSL_cert}')
-        return r
     
 class SpellTracker:
     def fetch_data_dragon_relevant_data(self):
@@ -172,7 +79,7 @@ class SpellTracker:
                 break
         return my_team
 
-    def get_enemy_list(self, my_team, player_list):
+    def enemy_list(self, my_team, player_list):
         enemy_list = []
         for player in player_list:
             if my_team not in player['team']:
@@ -229,6 +136,9 @@ class SpellTracker:
         for enemy in enemy_list:
             new_enemy_list.append(self.get_relevent_enemy_data_dict(enemy))
         return new_enemy_list
+    
+    def get_enemy_list(self):
+        return self.enemy_list
 
     # def get_enemies_with_inspiration(self, enemy_list):
     #     enemies_with_inspiration = []
@@ -298,9 +208,6 @@ class SpellTracker:
                     enemy_summoner_spell['baseCooldown'] = cooldown
                     enemy['summonerSpells'][key] = enemy_summoner_spell
 
-
-
-    #TODO: Add logic for calculating cds for both summs for each enemy and add to their dict. Special handling for Teleport - match name in database -> name in game ('Teleport' in 'Unleashed Teleport'), if game time >= 10mins, cd = base - (10 x Level) min 240 (max lvl = 10)
     def update_enemy_summoner_spell_starting_cooldown(self, enemy):
         for key, summoner_spell in enemy['summonerSpells'].items():
             base_cooldown = summoner_spell['baseCooldown']
@@ -316,6 +223,11 @@ class SpellTracker:
         
     def starting_cooldown(self, base_cooldown, haste):
         return (base_cooldown * (100/(100 + haste)))
+    
+    def find_matching_enemy(self, champion_name):
+        for enemy in self.enemy_list:
+            if enemy['championName'] in champion_name:
+                return enemy
 
     def calculate_enemy_summoner_cooldowns(self):
         for enemy in self.enemy_list:
@@ -350,7 +262,7 @@ class SpellTracker:
         self.game_mode = self.get_game_mode(lcu)
         my_team = self.get_my_team(self.my_summoner_name, player_list)
         
-        self.enemy_list = self.get_enemy_list(my_team, player_list)
+        self.enemy_list = self.enemy_list(my_team, player_list)
         self.enemy_list = self.simplify_enemy_list(self.enemy_list)
         
         # enemies_with_inspiration = self.get_enemies_with_inspiration(self.enemy_list)
@@ -367,16 +279,20 @@ class SpellTracker:
         
         self.calculate_enemy_summoner_cooldowns()
 
-        print(self.enemy_list[0]['summonerSpells'])
+        print(self.enemy_list)
         
     
-def __init__():
-    st = SpellTracker()
-    st.main()
+def main():
+    spell_tracker = SpellTracker()
+    cooldown_timers = CooldownTimer()
+    spell_tracker.main()
+    # Get input -> calculate enemy cds -> find respective enemy and spell -> start cd timer
+    enemy_identifier, spell_used = None, None # TODO: input
+    spell_tracker.calculate_enemy_summoner_cooldowns()
+    enemy = spell_tracker.find_matching_enemy(enemy_identifier)
+    cooldown_timers.start_cooldown(enemy, spell_used)
 
 
 #API_Key_Link = 'https://developer.riotgames.com'
-__init__()
-#Use pulsefire for 1. current game data
-#Use riot_watcher/data_dragon for 1. summoner spells, 2. items
-#Use lcu for 1. all players data, 2. game time
+if __name__ == '__main__':
+    main()
