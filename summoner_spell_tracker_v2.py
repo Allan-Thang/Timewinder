@@ -93,8 +93,8 @@ class SpellTracker:
         player_list = lcu.get_all_players().json()
         return player_list
 
-    def get_game_time(self, lcu):
-        game_time = lcu.get_game_stats().json()['gameTime']
+    def get_game_time(self, lcu) -> int:
+        game_time = int(lcu.get_game_stats().json()['gameTime'])
         return game_time
 
     def get_game_mode(self, lcu):
@@ -308,6 +308,7 @@ class SpellTracker:
         self.pulsefire_client = PulsefireClient(self.riot_dev_key)
         self.lcu = LCU()
         self.summoner_spell_icons = {}
+        self.game_time = 0
 
     def main(self):
         rune_data, summoner_spell_data = self.fetch_data_dragon_relevant_data()
