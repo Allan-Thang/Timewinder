@@ -47,12 +47,12 @@ class LCU:
 
     def get_all_game_data(self):
         r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/allgamedata', headers={
-                         'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=False)
+                         'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=False, timeout=10)
         return r
 
     def get_active_player_data(self):
         r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/activeplayer', headers={
-                         'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=f'{self.ssl_cert}')
+                         'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=False, timeout=10)
         return r
 
     # def get_active_player_name(self):
@@ -69,7 +69,7 @@ class LCU:
 
     def get_all_players(self):
         r = requests.get(f'{self.lcu_url}:2999/liveclientdata/playerlist',
-                         headers={'Accept': '*/*'}, verify=f'{self.ssl_cert}')
+                         headers={'Accept': '*/*'}, verify=False, timeout=10)
         # print(r.json())
         return r
 
@@ -79,7 +79,7 @@ class LCU:
 
     def get_target_player_summoner_spells(self, targetPlayer):
         r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/playersummonerspells?summonerName={targetPlayer}',
-                         headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=f'{self.ssl_cert}')
+                         headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=False, timeout=10)
         return r
 
     # def get_target_player_basic_runes(self, targetPlayer):
@@ -87,8 +87,8 @@ class LCU:
     #     return r
 
     def get_target_player_items(self, targetPlayer):
-        r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/playeritems?summonerName={targetPlayer}', headers={
-                         'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=f'{self.ssl_cert}')
+        r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/playeritems?summonerName={targetPlayer}',
+                         headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=False, timeout=10)
         return r
 
     # def get_events(self):
@@ -97,5 +97,5 @@ class LCU:
 
     def get_game_stats(self):
         r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/gamestats', headers={
-                         'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=f'{self.ssl_cert}')
+                         'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=False, timeout=10)
         return r
