@@ -19,6 +19,8 @@ class PulsefireClient():
         # summoner = asyncio.run(fetch_summoner(riot_dev_key))
         # active_game = asyncio.run(fetch_active_game(riot_dev_key, summoner))
         self.champion_summary = asyncio.run(self.fetch_champion_data())
+        self.summoner_spells = asyncio.run(self.fetch_summoner_spells())
+
         # print(champion_summary)
 
     async def fetch_summoner(self):
@@ -51,25 +53,45 @@ class PulsefireClient():
 
         return champion_summary
 
-    def fetch_image(self, champ_id):
-        base_url = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/'
-        r = requests.get(f'{base_url}{str(champ_id)}.png', timeout=5)
-        return r.content
-
-    def fetch_champ_image(self, champ_name):
+    def fetch_champ_icon(self, champ_name: str) -> bytes:
         for champion in self.champion_summary:
             if champ_name in champion['name']:
                 champ_id = champion['id']
-                img = self.fetch_image(champ_id)
-                return img
+                base_url = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/'
+                r = requests.get(f'{base_url}{str(champ_id)}.png', timeout=5)
+                icon = r.content
+                return icon
+        assert False
+
+    async def fetch_summoner_spells(self):
+        async with CDragonClient(default_params={"patch": "latest", "locale": "en_au"}) as client:
+            summoner_spells = await client.get_lol_v1_summoner_spells()
+        return summoner_spells
+
+    def fetch_summoner_spell_icon(self, summoner_spell_name: str) -> bytes:
+        for summoner_spell in self.summoner_spells:
+            if summoner_spell_name in summoner_spell['name']:
+                file_name = summoner_spell['iconPath'].split('/')[-1].lower()
+                base_url = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/data/spells/icons2d/'
+                r = requests.get(f'{base_url}{str(file_name)}', timeout=5)
+                icon = r.content
+                return icon
+        assert False
 
 # asyncio.run(main())
 # await main()
 
 
-# if __name__ == '__main__':
-#     dev_key = str(load_dotenv('RIOT_DEV_API_KEY'))
-#     pf = Pulsefire(dev_key)
-#     image = pf.fetch_champ_image('Zoe')
-#     print(image)
+def main():
+    dev_key = str(load_dotenv('RIOT_DEV_API_KEY'))
+    pf = PulsefireClient(dev_key)
+    summoner_spells = asyncio.run(pf.fetch_summoner_spells())
+    file_name = pf.fetch_summoner_spell_icon('Cleanse')
+    # print(summoner_spells)
+    # image = pf.fetch_champ_image('Zoe')
+    # print(image)
+
+
+if __name__ == '__main__':
+    main()
 # %%

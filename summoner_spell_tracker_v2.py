@@ -1,8 +1,6 @@
 import asyncio
-import sys
 from os import getenv
 
-import aiohttp
 from dotenv import load_dotenv
 from riotwatcher import LolWatcher
 
@@ -158,20 +156,32 @@ class SpellTracker:
 
         new_dict['summonerSpells'] = enemy['summonerSpells']
         for key, summoner_spell in new_dict['summonerSpells'].items():
-            spell_name = summoner_spell['displayName']
+            spell_name = str(summoner_spell['displayName'])
+            if 'Teleport' in spell_name:
+                spell_name = 'Teleport'
+
             summoner_spell = {}
             summoner_spell['name'] = spell_name
-            new_dict['summonerSpells'][key] = summoner_spell
 
-            if 'Teleport' in summoner_spell['name']:
-                summoner_spell['name'] = 'Teleport'
+            summoner_spell['icon'] = self.fetch_summoner_spell_icon(spell_name)
+
+            new_dict['summonerSpells'][key] = summoner_spell
 
         new_dict['summonerHasteSources'] = self.get_static_summoner_haste_sources(
             enemy)
 
-        new_dict['championImage'] = self.pulsefire.fetch_champ_image(
+        new_dict['championImage'] = self.pulsefire_client.fetch_champ_icon(
             new_dict['championName'])
         return new_dict
+
+    def fetch_summoner_spell_icon(self, summoner_spell_name: str) -> bytes:
+        if summoner_spell_name in self.summoner_spell_icons:
+            return self.summoner_spell_icons[summoner_spell_name]
+        else:
+            icon = self.pulsefire_client.fetch_summoner_spell_icon(
+                summoner_spell_name)
+            self.summoner_spell_icons[summoner_spell_name] = icon
+            return icon
 
     def simplify_enemy_list(self, enemy_list):
         new_enemy_list = []
@@ -295,8 +305,9 @@ class SpellTracker:
             "Cosmic Insight": 18,
             "ARAM": 70,
         }
-        self.pulsefire = PulsefireClient(self.riot_dev_key)
+        self.pulsefire_client = PulsefireClient(self.riot_dev_key)
         self.lcu = LCU()
+        self.summoner_spell_icons = {}
 
     def main(self):
         rune_data, summoner_spell_data = self.fetch_data_dragon_relevant_data()
@@ -304,9 +315,9 @@ class SpellTracker:
         self.inspiration_ID = self.parse_runeIDs_for_inspiration_ID(rune_data)
         self.cosmic_insight_ID = self.parse_runeIDs_for_CI_ID(rune_data)
 
-        summoner = asyncio.run(self.pulsefire.fetch_summoner())
+        summoner = asyncio.run(self.pulsefire_client.fetch_summoner())
         active_game = asyncio.run(
-            self.pulsefire.fetch_active_game(summoner))
+            self.pulsefire_client.fetch_active_game(summoner))
 
         player_list = self.get_player_list(self.lcu)
         self.game_time = self.get_game_time(self.lcu)

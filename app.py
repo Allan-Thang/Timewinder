@@ -51,12 +51,12 @@ class App():
         ttk.Button(self.row0, text='Refresh').pack(
             fill='both', expand=True, padx=5, pady=5)
 
-        self.champions = {}
-        self.champions['champ1'] = self.create_champ_row_layout(self.row1)
-        self.champions['champ2'] = self.create_champ_row_layout(self.row2)
-        self.champions['champ3'] = self.create_champ_row_layout(self.row3)
-        self.champions['champ4'] = self.create_champ_row_layout(self.row4)
-        self.champions['champ5'] = self.create_champ_row_layout(self.row5)
+        self.widgets = {}
+        self.widgets['champ1'] = self.create_champ_row_layout(self.row1)
+        self.widgets['champ2'] = self.create_champ_row_layout(self.row2)
+        self.widgets['champ3'] = self.create_champ_row_layout(self.row3)
+        self.widgets['champ4'] = self.create_champ_row_layout(self.row4)
+        self.widgets['champ5'] = self.create_champ_row_layout(self.row5)
 
         # print(self.champions)
 
@@ -90,7 +90,7 @@ class App():
         print('refresh')
 
     def create_champ_row_layout(self, row):
-        champion = {}
+        widgets = {}
         row.columnconfigure(0, weight=4)
         row.columnconfigure(1, weight=6)
         row.rowconfigure(0, weight=1)
@@ -107,11 +107,11 @@ class App():
 
         champ_image = ttk.Label(col0, text='ChampImage')
         champ_image.grid(row=0, column=0, sticky='NSEW', padx=5, pady=5)
-        champion['championImage'] = champ_image
+        widgets['championImage'] = champ_image
 
         champ_name = ttk.Label(col0, text='ChampName')
         champ_name.grid(row=1, column=0, sticky='NSEW', padx=5, pady=5)
-        champion['championName'] = champ_name
+        widgets['championName'] = champ_name
 
         col1.rowconfigure(0, weight=1)
         col1.rowconfigure(1, weight=1)
@@ -121,21 +121,21 @@ class App():
 
         summ_1_image = ttk.Button(col1, text='Summ1Image')
         summ_1_image.grid(row=0, column=0, sticky='NSEW', padx=5, pady=5)
-        champion['summonerSpell1Image'] = summ_1_image
+        widgets['summonerSpell1Icon'] = summ_1_image
 
         summoner_1_cooldown = ttk.Label(col1, text='Summ1CD', foreground='red')
         summoner_1_cooldown.grid(
             row=0, column=1, sticky='NSEW', padx=5, pady=5)
-        champion['summonerSpell1Cooldown'] = summoner_1_cooldown
+        widgets['summonerSpell1Cooldown'] = summoner_1_cooldown
 
         summ_2_image = ttk.Button(col1, text='Summ2Image')
         summ_2_image.grid(row=1, column=0, sticky='NSEW', padx=5, pady=5)
-        champion['summonerSpell2Image'] = summ_2_image
+        widgets['summonerSpell2Image'] = summ_2_image
 
         summ_2_cooldown = ttk.Label(col1, text='Summ2CD', foreground='red')
         summ_2_cooldown.grid(
             row=1, column=1, sticky='NSEW', padx=5, pady=5)
-        champion['summonerSpell2Cooldown'] = summ_2_cooldown
+        widgets['summonerSpell2Cooldown'] = summ_2_cooldown
 
         ttk.Button(col1, text='MoveUpArrow').grid(
             row=0, column=2, sticky='NSEW', padx=5, pady=5)
@@ -143,7 +143,7 @@ class App():
         ttk.Button(col1, text='MoveUpArrow').grid(
             row=1, column=2, sticky='NSEW', padx=5, pady=5)
 
-        return champion
+        return widgets
 
     def configure_image(self, widget, image):
         tk_champ_image = ImageTk.PhotoImage(
