@@ -170,7 +170,7 @@ class SpellTracker:
         new_dict['summonerHasteSources'] = self.get_static_summoner_haste_sources(
             enemy)
 
-        new_dict['championImage'] = self.pulsefire_client.fetch_champ_icon(
+        new_dict['championIcon'] = self.pulsefire_client.fetch_champ_icon(
             new_dict['championName'])
         return new_dict
 
