@@ -12,7 +12,7 @@ class App():
         width = 400
         height = 550
         title = 'Shiva\'s Summoner Spell Tracker'
-        self._images = []
+        self._images = {}
         # Create the main window
         self.root = tk.Tk()
         # Set the window size (widthxheight)
@@ -146,10 +146,11 @@ class App():
         return widgets
 
     def configure_image(self, widget, image):
-        tk_champ_image = ImageTk.PhotoImage(
-            Image.open(BytesIO(image)))  # type: ignore
-        self._images.append(tk_champ_image)
-        widget.configure(image=tk_champ_image)  # type: ignore
+        if image not in self._images:
+            tk_champ_image = ImageTk.PhotoImage(
+                Image.open(BytesIO(image)))  # type: ignore
+            self._images[image] = tk_champ_image
+        widget.configure(image=self._images[image])
         return
 
     def configure_text(self, widget, text):
