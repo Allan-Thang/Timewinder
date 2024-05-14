@@ -48,10 +48,11 @@ class App():
         self.row5 = tk.Frame(self.mainframe, background='orange', name='row5')
         self.row5.grid(row=5, column=0, sticky='NSEW')
 
-        ttk.Button(self.row0, text='Refresh').pack(
-            fill='both', expand=True, padx=5, pady=5)
+        refresh_button = ttk.Button(self.row0, text='Refresh')
+        refresh_button.pack(fill='both', expand=True, padx=5, pady=5)
 
         self.widgets = {}
+        self.widgets['refresh'] = refresh_button
         self.widgets['champ1'] = self.create_champ_row_layout(self.row1)
         self.widgets['champ2'] = self.create_champ_row_layout(self.row2)
         self.widgets['champ3'] = self.create_champ_row_layout(self.row3)
@@ -153,7 +154,8 @@ class App():
         widget.configure(image=self._images[image])
         return
 
-    def configure_text(self, widget, text):
+    def configure_text(self, widget, replace_text: str):
+        widget.configure(text=replace_text)
         return
 
     def configure_button(self, widget, command):

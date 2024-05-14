@@ -121,7 +121,7 @@ class SpellTracker:
     def get_static_summoner_haste_sources(self, enemy):
         summoner_haste_sources = {}
 
-        if self.inspiration_ID in enemy['runes']['primaryRuneTree'] or self.inspiration_ID in enemy['runes']['secondaryRuneTree']:
+        if self.inspiration_id in enemy['runes']['primaryRuneTree'] or self.inspiration_id in enemy['runes']['secondaryRuneTree']:
             summoner_haste_sources['Inspiration'] = True
         else:
             summoner_haste_sources['Inspiration'] = False
@@ -217,7 +217,7 @@ class SpellTracker:
     def check_for_cosmic_insight(self, enemy, active_game):
         for participant in active_game['participants']:
             if enemy['summonerHasteSources']['Inspiration'] and participant['summonerName'] in enemy['summonerName']:
-                if self.cosmic_insight_ID in participant['perks']['perkIDs']:
+                if self.cosmic_insight_id in participant['perks']['perkIDs']:
                     return True
                     # // enemy['summonerHasteSources']['Cosmic Insight'] = True
                 else:
@@ -309,16 +309,19 @@ class SpellTracker:
         self.lcu = LCU()
         self.summoner_spell_icons = {}
         self.game_time = 0
+        self.game_mode = ''
+        self.enemy_list = []
+
+        self.rune_data, self.summoner_spell_data = self.fetch_data_dragon_relevant_data()
+
+        self.inspiration_id = self.parse_runeIDs_for_inspiration_ID(
+            self.rune_data)
+        self.cosmic_insight_id = self.parse_runeIDs_for_CI_ID(self.rune_data)
+        self.summoner = asyncio.run(self.pulsefire_client.fetch_summoner())
 
     def main(self):
-        rune_data, summoner_spell_data = self.fetch_data_dragon_relevant_data()
-
-        self.inspiration_ID = self.parse_runeIDs_for_inspiration_ID(rune_data)
-        self.cosmic_insight_ID = self.parse_runeIDs_for_CI_ID(rune_data)
-
-        summoner = asyncio.run(self.pulsefire_client.fetch_summoner())
         active_game = asyncio.run(
-            self.pulsefire_client.fetch_active_game(summoner))
+            self.pulsefire_client.fetch_active_game(self.summoner))
 
         player_list = self.get_player_list(self.lcu)
         self.game_time = self.get_game_time(self.lcu)
@@ -339,7 +342,7 @@ class SpellTracker:
         unique_summoner_spells = self.find_unique_summoner_spells(
             self.enemy_list)
         summoner_cd_dict = self.create_summoner_cooldown_dict(
-            unique_summoner_spells, summoner_spell_data)
+            unique_summoner_spells, self.summoner_spell_data)
 
         self.update_all_enemies_base_summoner_cooldowns(
             self.enemy_list, summoner_cd_dict)
@@ -363,5 +366,3 @@ def main():
 # ? API_Key_Link = 'https://developer.riotgames.com'
 if __name__ == '__main__':
     main()
-
-# TODO: Champ icon, Summoner Spell icon,

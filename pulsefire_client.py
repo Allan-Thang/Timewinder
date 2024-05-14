@@ -23,11 +23,11 @@ class PulsefireClient():
 
         # print(champion_summary)
 
-    async def fetch_summoner(self):
+    async def fetch_summoner(self, region: str = 'asia', server: str = 'oc1', game_name: str = 'Shiva', tag_line: str = '1920'):
         # get my
         async with RiotAPIClient(default_headers={"X-Riot-Token": self.riot_dev_key}) as client:
-            account = await client.get_account_v1_by_riot_id(region='asia', game_name='Shiva', tag_line='1920')
-            summoner = await client.get_lol_summoner_v4_by_puuid(region='oc1', puuid=account['puuid'])
+            account = await client.get_account_v1_by_riot_id(region=region, game_name=game_name, tag_line=tag_line)
+            summoner = await client.get_lol_summoner_v4_by_puuid(region=server, puuid=account['puuid'])
         return summoner
 
     async def fetch_active_game(self, summoner):
@@ -83,10 +83,12 @@ class PulsefireClient():
 
 
 def main():
-    dev_key = str(load_dotenv('RIOT_DEV_API_KEY'))
+    load_dotenv()
+    dev_key = str(getenv('RIOT_DEV_API_KEY'))
     pf = PulsefireClient(dev_key)
-    summoner_spells = asyncio.run(pf.fetch_summoner_spells())
-    file_name = pf.fetch_summoner_spell_icon('Cleanse')
+    asyncio.run(pf.fetch_summoner())
+    # summoner_spells = asyncio.run(pf.fetch_summoner_spells())
+    # file_name = pf.fetch_summoner_spell_icon('Cleanse')
     # print(summoner_spells)
     # image = pf.fetch_champ_image('Zoe')
     # print(image)
