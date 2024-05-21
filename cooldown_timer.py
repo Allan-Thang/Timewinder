@@ -13,30 +13,38 @@ class CooldownTimer:
     def set_game_time(self, game_time: int):
         self._game_time = game_time
 
-    def track_summoner_spell_cooldown(self, enemy, summoner_spell_name: str):
+    def track_summoner_spell_cooldown(self, enemy, summoner_spell_name: str, widget):
         for key, summoner_spell in enemy['summonerSpells'].items():
             if summoner_spell_name in summoner_spell['name']:
                 # self.countdown(summoner_spell['startingCooldown'])
-                summoner_spell['currentCooldown'] = summoner_spell['startingCooldown']
-                while summoner_spell['currentCooldown'] > 0:
+                current_cooldown = summoner_spell['startingCooldown']
+                summoner_spell['currentCooldown'] = current_cooldown
+                while current_cooldown > 0:
                     sleep(1)
-                    summoner_spell['currentCooldown'] = summoner_spell['currentCooldown'] - 1
+                    current_cooldown = current_cooldown - 1
                     if 'Teleport' in summoner_spell_name:
-                        summoner_spell['currentCooldown'] = self.check_teleport_cooldown(
-                            summoner_spell)
+                        current_cooldown = self.check_teleport_cooldown(
+                            summoner_spell, current_cooldown)
+                    summoner_spell['currentCooldown'] = current_cooldown
                     enemy['summonerSpells'][key] = summoner_spell
+                    widget.configure(text=str(current_cooldown))
+                    if current_cooldown == 0:
+                        widget.configure(text='Ready')
 
                 print(f'{enemy['championName']}\'s {
                       summoner_spell["name"]} is ready!')
 
-    def check_teleport_cooldown(self, summoner_spell):
+    def check_teleport_cooldown(self, summoner_spell, current_cooldown: int) -> int:
+        starting_cooldown: int = summoner_spell['startingCooldown']
         if self._game_time >= 600:
-            if summoner_spell['currentCooldown'] > summoner_spell['startingCooldown']:
-                return summoner_spell['startingCooldown']
+            if current_cooldown > starting_cooldown:
+                return starting_cooldown
             else:
-                return summoner_spell['currentCooldown']
+                return current_cooldown
+        else:
+            return current_cooldown
 
-    def start_cooldown(self, enemy, summoner_spell_name: str, game_time: int):
+    def start_cooldown(self, enemy, summoner_spell_name: str, widget, game_time: int):
         """
         Starts a cooldown for a given summoner spell on an enemy character.
 
@@ -59,7 +67,7 @@ class CooldownTimer:
             - The thread is started.
         """
         thread = threading.Thread(
-            target=self.track_summoner_spell_cooldown, args=(enemy, summoner_spell_name,))
+            target=self.track_summoner_spell_cooldown, args=(enemy, summoner_spell_name, widget,))
         self.set_game_time(game_time)
         self._active_cooldown_threads.append(thread)
         thread.start()

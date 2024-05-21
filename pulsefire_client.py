@@ -23,7 +23,7 @@ class PulsefireClient():
 
         # print(champion_summary)
 
-    async def fetch_summoner(self, region: str = 'asia', server: str = 'oc1', game_name: str = 'Shiva', tag_line: str = '1920'):
+    async def fetch_summoner(self, region: str = str(getenv('REGION')), server: str = str(getenv('SERVER')), game_name: str = str(getenv('SUMMONER_NAME')), tag_line: str = str(getenv('GAME_TAG'))):
         # get my
         async with RiotAPIClient(default_headers={"X-Riot-Token": self.riot_dev_key}) as client:
             account = await client.get_account_v1_by_riot_id(region=region, game_name=game_name, tag_line=tag_line)

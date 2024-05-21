@@ -24,11 +24,7 @@ class App():
 
         self.mainframe.columnconfigure(0, weight=1)
         self.mainframe.rowconfigure(0, weight=1)
-        self.mainframe.rowconfigure(1, weight=2)
-        self.mainframe.rowconfigure(2, weight=2)
-        self.mainframe.rowconfigure(3, weight=2)
-        self.mainframe.rowconfigure(4, weight=2)
-        self.mainframe.rowconfigure(5, weight=2)
+        self.mainframe.rowconfigure([1, 2, 3, 4, 5], weight=2)
 
         self.row0 = tk.Frame(self.mainframe, background='red', name='row0')
         self.row0.grid(row=0, column=0, sticky='NSEW')
@@ -48,16 +44,15 @@ class App():
         self.row5 = tk.Frame(self.mainframe, background='orange', name='row5')
         self.row5.grid(row=5, column=0, sticky='NSEW')
 
-        refresh_button = ttk.Button(self.row0, text='Refresh')
-        refresh_button.pack(fill='both', expand=True, padx=5, pady=5)
+        self.refresh_button = ttk.Button(self.row0, text='Refresh')
+        self.refresh_button.pack(fill='both', expand=True, padx=5, pady=5)
 
-        self.widgets = {}
-        self.widgets['refresh'] = refresh_button
-        self.widgets['champ1'] = self.create_champ_row_layout(self.row1)
-        self.widgets['champ2'] = self.create_champ_row_layout(self.row2)
-        self.widgets['champ3'] = self.create_champ_row_layout(self.row3)
-        self.widgets['champ4'] = self.create_champ_row_layout(self.row4)
-        self.widgets['champ5'] = self.create_champ_row_layout(self.row5)
+        self.row_widgets = []
+        self.row_widgets.append(self.create_champ_row_layout(self.row1))
+        self.row_widgets.append(self.create_champ_row_layout(self.row2))
+        self.row_widgets.append(self.create_champ_row_layout(self.row3))
+        self.row_widgets.append(self.create_champ_row_layout(self.row4))
+        self.row_widgets.append(self.create_champ_row_layout(self.row5))
 
         # print(self.champions)
 
@@ -120,16 +115,18 @@ class App():
         col1.columnconfigure(1, weight=4)
         col1.columnconfigure(2, weight=1)
 
-        summ_1_image = ttk.Button(col1, text='Summ1Image')
+        summ_1_image = ttk.Button(
+            col1, text='Summ1Image')
         summ_1_image.grid(row=0, column=0, sticky='NSEW', padx=5, pady=5)
-        widgets['summonerSpell1Icon'] = summ_1_image
+        widgets['summonerSpell1Image'] = summ_1_image
 
         summoner_1_cooldown = ttk.Label(col1, text='Summ1CD', foreground='red')
         summoner_1_cooldown.grid(
             row=0, column=1, sticky='NSEW', padx=5, pady=5)
         widgets['summonerSpell1Cooldown'] = summoner_1_cooldown
 
-        summ_2_image = ttk.Button(col1, text='Summ2Image')
+        summ_2_image = ttk.Button(
+            col1, text='Summ2Image')
         summ_2_image.grid(row=1, column=0, sticky='NSEW', padx=5, pady=5)
         widgets['summonerSpell2Image'] = summ_2_image
 
@@ -146,6 +143,26 @@ class App():
 
         return widgets
 
+    def configure_row(self, row, enemy, main_obj) -> None:
+        # Champ Image
+        self.configure_image(row['championImage'], enemy['championIcon'])
+        # Champ Name
+        self.configure_text(row['championName'], enemy['championName'])
+        # Summoner 1 Image
+        self.configure_image(row['summonerSpell1Image'],
+                             enemy['summonerSpells']['summonerSpellOne']['icon'])
+        # Summoner 1 Cooldown
+        # self.configure_button(row['summonerSpell1Icon'], lambda: print('test'))
+        self.configure_button(row['summonerSpell1Image'], lambda: main_obj.update_and_start_cooldown(
+            enemy, enemy['summonerSpells']['summonerSpellOne']['name'], row['summonerSpell1Cooldown']))
+        # Summoner 2 Image
+        self.configure_image(row['summonerSpell2Image'],
+                             enemy['summonerSpells']['summonerSpellTwo']['icon'])
+        # Summoner 2 Cooldown
+        self.configure_button(row['summonerSpell2Image'], lambda: main_obj.update_and_start_cooldown(
+            enemy, enemy['summonerSpells']['summonerSpellTwo']['name'], row['summonerSpell2Cooldown']))
+        return
+
     def configure_image(self, widget, image):
         if image not in self._images:
             tk_champ_image = ImageTk.PhotoImage(
@@ -159,6 +176,7 @@ class App():
         return
 
     def configure_button(self, widget, command):
+        widget.configure(command=command)
         return
 
     def start_cooldown(self, champion_name, summoner_spell_name):

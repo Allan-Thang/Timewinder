@@ -89,22 +89,26 @@ class SpellTracker:
         # //         if CI_key in inspiration_slots[row]['runes'][rune]['key']:
         # //             return inspiration_slots[row]['runes'][rune]['id']
 
-    def get_player_list(self, lcu):
-        player_list = lcu.get_all_players().json()
+    def get_player_list(self):
+        player_list = self.lcu.get_all_players().json()
         return player_list
 
-    def get_game_time(self, lcu) -> int:
-        game_time = int(lcu.get_game_stats().json()['gameTime'])
+    def get_game_time(self) -> int:
+        game_time = int(self. lcu.get_game_stats().json()['gameTime'])
         return game_time
 
-    def get_game_mode(self, lcu):
-        game_mode = lcu.get_game_stats().json()['gameMode']
+    def update_game_time(self) -> None:
+        self.game_time = self.get_game_time()
+        return
+
+    def get_game_mode(self):
+        game_mode = self.lcu.get_game_stats().json()['gameMode']
         return game_mode
 
-    def get_my_team(self, my_summoner_name, player_list):
+    def get_my_team(self, riot_id, player_list):
         my_team = None
         for player in player_list:
-            if player['summonerName'] in my_summoner_name:
+            if player['riotId'] in riot_id:
                 my_team = player['team']
                 break
         return my_team
@@ -150,9 +154,10 @@ class SpellTracker:
 
     def get_relevent_enemy_data_dict(self, enemy):
         new_dict = {}
-        new_dict['summonerName'] = enemy['summonerName']
+        new_dict['riotId'] = enemy['riotId']
         new_dict['championName'] = enemy['championName']
         new_dict['level'] = enemy['level']
+        new_dict['items'] = []
 
         new_dict['summonerSpells'] = enemy['summonerSpells']
         for key, summoner_spell in new_dict['summonerSpells'].items():
@@ -216,7 +221,7 @@ class SpellTracker:
 
     def check_for_cosmic_insight(self, enemy, active_game):
         for participant in active_game['participants']:
-            if enemy['summonerHasteSources']['Inspiration'] and participant['summonerName'] in enemy['summonerName']:
+            if enemy['summonerHasteSources']['Inspiration'] and enemy['riotId'] in participant['riotId']:
                 if self.cosmic_insight_id in participant['perks']['perkIDs']:
                     return True
                     # // enemy['summonerHasteSources']['Cosmic Insight'] = True
@@ -287,6 +292,7 @@ class SpellTracker:
 
     def calculate_enemy_summoner_cooldowns(self):
         for enemy in self.enemy_list:
+            self.update_enemy_items(enemy)
             dynamic_haste_sources = self.get_dynamic_summoner_haste_sources(
                 enemy)
             # Merge with existing dict
@@ -294,21 +300,33 @@ class SpellTracker:
             self.calculate_enemy_summoner_haste(enemy)
             self.update_enemy_summoner_spell_starting_cooldown(enemy)
 
+    def update_enemy_items(self, enemy):
+        enemy_items_data = self.lcu.get_target_player_items(
+            enemy['riotId']).json()
+        enemy_items = []
+        for item in enemy_items_data:
+            enemy_items.append(item['displayName'])
+        enemy['items'] = enemy_items
+
+    def create_fake_game(self):
+        self.update_game_time()
+
     def __init__(self):
         load_dotenv()
         self.riot_dev_key: str = str(getenv('RIOT_DEV_API_KEY'))
-        self.my_region = 'OC1'
         self.my_summoner_name = getenv('SUMMONER_NAME')
+        self.my_tag_line = getenv('GAME_TAG')
+        self.riot_id = f'{self.my_summoner_name}#{self.my_tag_line}'
         self.summoner_haste_sources = {
             "Ionian Boots of Lucidity": 12,
-            "Dawncore": 18,
+            "Dawncore": 0,
             "Cosmic Insight": 18,
             "ARAM": 70,
         }
         self.pulsefire_client = PulsefireClient(self.riot_dev_key)
         self.lcu = LCU()
         self.summoner_spell_icons = {}
-        self.game_time = 0
+        self.game_time: int = 0
         self.game_mode = ''
         self.enemy_list = []
 
@@ -323,10 +341,10 @@ class SpellTracker:
         active_game = asyncio.run(
             self.pulsefire_client.fetch_active_game(self.summoner))
 
-        player_list = self.get_player_list(self.lcu)
-        self.game_time = self.get_game_time(self.lcu)
-        self.game_mode = self.get_game_mode(self.lcu)
-        my_team = self.get_my_team(self.my_summoner_name, player_list)
+        player_list = self.get_player_list()
+        self.update_game_time()
+        self.game_mode = self.get_game_mode()
+        my_team = self.get_my_team(self.riot_id, player_list)
 
         self.enemy_list = self.new_enemy_list(my_team, player_list)
         self.enemy_list = self.simplify_enemy_list(self.enemy_list)
@@ -337,7 +355,7 @@ class SpellTracker:
 
         for enemy in self.enemy_list:
             enemy['summonerHasteSources']['Cosmic Insight'] = self.check_for_cosmic_insight(
-                self.enemy_list, active_game)
+                enemy, active_game)
 
         unique_summoner_spells = self.find_unique_summoner_spells(
             self.enemy_list)
@@ -349,8 +367,6 @@ class SpellTracker:
 
         self.calculate_enemy_summoner_cooldowns()
 
-        print(self.enemy_list)
-
 
 def main():
     spell_tracker = SpellTracker()
@@ -359,7 +375,6 @@ def main():
     # Get input -> calculate enemy cds -> find respective enemy and spell -> start cd timer
     enemy_identifier, spell_used = None, None  # TODO: input
     spell_tracker.calculate_enemy_summoner_cooldowns()
-    enemy = spell_tracker.find_matching_enemy(enemy_identifier)
     # cooldown_timers.start_cooldown(enemy, spell_used)
 
 
