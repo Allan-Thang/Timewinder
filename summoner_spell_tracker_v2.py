@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from riotwatcher import LolWatcher
 
 from cooldown_timer import CooldownTimer
+from fake_lcu import FakeLCU
+from fake_pf_game import FakePFGame
 from lcu import LCU
 # from pulsefire.clients import RiotAPIClient
 from pulsefire_client import PulsefireClient
@@ -16,18 +18,6 @@ class SpellTracker:
     """
 
     def fetch_data_dragon_relevant_data(self):
-        """
-        Fetches relevant data from Data Dragon API.
-
-        This function initializes a LolWatcher object with the provided Riot Developer Key.
-        It then retrieves the versions for the 'oce' region using the data_dragon.versions_for_region method.
-        The function then fetches the rune data for the latest version using the data_dragon.runes_reforged method.
-        Finally, it fetches the summoner spells data for the latest version using the data_dragon.summoner_spells method.
-
-        Returns:
-            tuple: A tuple containing the rune data and summoner spells data fetched from Data Dragon API.
-        """
-
         lol_watcher = LolWatcher(self.riot_dev_key)
         dd_versions = lol_watcher.data_dragon.versions_for_region('oce')
         dd_rune_data = lol_watcher.data_dragon.runes_reforged(
@@ -37,32 +27,11 @@ class SpellTracker:
         return dd_rune_data, dd_summoner_spells_data
 
     def parse_runeIDs_for_inspiration_ID(self, dd_rune_ids):
-        """
-        Parses the given list of rune IDs to find the ID of the 'Inspiration' rune tree.
-
-        Args:
-            self: The instance of the SpellTracker class.
-            dd_rune_ids (list): A list of dictionaries representing the rune trees.
-
-        Returns:
-            int: The ID of the 'Inspiration' rune tree.
-        """
-
         for rune_tree in dd_rune_ids:
             if 'Inspiration' in rune_tree['key']:
                 return rune_tree['id']
 
     def parse_runeIDs_for_CI_ID(self, dd_rune_ids):
-        """
-        Parses the given list of rune IDs to find the ID of the 'CosmicInsight' rune.
-
-        Args:
-            self: The instance of the SpellTracker class.
-            dd_rune_ids (list): A list of dictionaries representing the rune trees.
-
-        Returns:
-            int: The ID of the 'CosmicInsight' rune.
-        """
 
         CI_key = 'CosmicInsight'
         inspiration_tree_index = None
@@ -90,11 +59,11 @@ class SpellTracker:
         # //             return inspiration_slots[row]['runes'][rune]['id']
 
     def get_player_list(self):
-        player_list = self.lcu.get_all_players().json()
+        player_list = self.lcu.get_all_players()
         return player_list
 
     def get_game_time(self) -> int:
-        game_time = int(self. lcu.get_game_stats().json()['gameTime'])
+        game_time = int(self.lcu.get_game_stats()['gameTime'])
         return game_time
 
     def update_game_time(self) -> None:
@@ -102,7 +71,7 @@ class SpellTracker:
         return
 
     def get_game_mode(self):
-        game_mode = self.lcu.get_game_stats().json()['gameMode']
+        game_mode = self.lcu.get_game_stats()['gameMode']
         return game_mode
 
     def get_my_team(self, riot_id, player_list):
@@ -125,7 +94,7 @@ class SpellTracker:
     def get_static_summoner_haste_sources(self, enemy):
         summoner_haste_sources = {}
 
-        if self.inspiration_id in enemy['runes']['primaryRuneTree'] or self.inspiration_id in enemy['runes']['secondaryRuneTree']:
+        if self.inspiration_id == enemy['runes']['primaryRuneTree']['id'] or self.inspiration_id == enemy['runes']['secondaryRuneTree']['id']:
             summoner_haste_sources['Inspiration'] = True
         else:
             summoner_haste_sources['Inspiration'] = False
@@ -194,9 +163,6 @@ class SpellTracker:
             new_enemy_list.append(self.get_relevent_enemy_data_dict(enemy))
         return new_enemy_list
 
-    def get_enemy_list(self):
-        return self.enemy_list
-
     # // def get_enemies_with_inspiration(self, enemy_list):
     # //     enemies_with_inspiration = []
     # //     for enemy in enemy_list:
@@ -221,16 +187,16 @@ class SpellTracker:
 
     def check_for_cosmic_insight(self, enemy, active_game):
         for participant in active_game['participants']:
-            if enemy['summonerHasteSources']['Inspiration'] and enemy['riotId'] in participant['riotId']:
-                if self.cosmic_insight_id in participant['perks']['perkIDs']:
-                    return True
-                    # // enemy['summonerHasteSources']['Cosmic Insight'] = True
-                else:
-                    return False
-                    # // enemy['summonerHasteSources']['Cosmic Insight'] = False
-            else:
+            if enemy['riotId'] not in participant['riotId']:
+                continue
+            if not enemy['summonerHasteSources']['Inspiration']:
                 return False
                 # // enemy['summonerHasteSources']['Cosmic Insight'] = False
+            if self.cosmic_insight_id not in participant['perks']['perkIds']:
+                return False
+                # // enemy['summonerHasteSources']['Cosmic Insight'] = False
+            return True
+            # // enemy['summonerHasteSources']['Cosmic Insight'] = True
 
     def find_unique_summoner_spells(self, enemy_list):
         summoner_list = {}
@@ -253,6 +219,7 @@ class SpellTracker:
             for _, value in dd_summoner_spells_data['data'].items():
                 if value['name'] in summoner_spell_name and self.game_mode in value['modes']:
                     summoner_cooldown_dict[summoner_spell_name] = value['cooldown'][0]
+                    break
         return summoner_cooldown_dict
 
     def update_all_enemies_base_summoner_cooldowns(self, enemy_list, summoner_cd_dict):
@@ -266,6 +233,7 @@ class SpellTracker:
                     enemy_summoner_spell['baseCooldown'] = cooldown
 
                     enemy['summonerSpells'][key] = enemy_summoner_spell
+                    break
 
     def update_enemy_summoner_spell_starting_cooldown(self, enemy):
         for key, summoner_spell in enemy['summonerSpells'].items():
@@ -283,7 +251,7 @@ class SpellTracker:
         return base_cooldown
 
     def starting_cooldown(self, base_cooldown, haste):
-        return (base_cooldown * (100/(100 + haste)))
+        return int(base_cooldown * (100/(100 + haste)))
 
     def find_matching_enemy(self, champion_name):
         for enemy in self.enemy_list:
@@ -302,14 +270,11 @@ class SpellTracker:
 
     def update_enemy_items(self, enemy):
         enemy_items_data = self.lcu.get_target_player_items(
-            enemy['riotId']).json()
+            enemy['riotId'])
         enemy_items = []
         for item in enemy_items_data:
             enemy_items.append(item['displayName'])
         enemy['items'] = enemy_items
-
-    def create_fake_game(self):
-        self.update_game_time()
 
     def __init__(self):
         load_dotenv()
@@ -324,7 +289,10 @@ class SpellTracker:
             "ARAM": 70,
         }
         self.pulsefire_client = PulsefireClient(self.riot_dev_key)
-        self.lcu = LCU()
+        #! DEBUG
+        # self.lcu = LCU()
+        self.lcu = FakeLCU()
+        #! END
         self.summoner_spell_icons = {}
         self.game_time: int = 0
         self.game_mode = ''
@@ -338,8 +306,11 @@ class SpellTracker:
         self.summoner = asyncio.run(self.pulsefire_client.fetch_summoner())
 
     def main(self):
-        active_game = asyncio.run(
-            self.pulsefire_client.fetch_active_game(self.summoner))
+        #! DEBUG
+        # active_game = asyncio.run(
+        #     self.pulsefire_client.fetch_active_game(self.summoner))
+        active_game = FakePFGame().game
+        #! END
 
         player_list = self.get_player_list()
         self.update_game_time()
@@ -366,6 +337,8 @@ class SpellTracker:
             self.enemy_list, summoner_cd_dict)
 
         self.calculate_enemy_summoner_cooldowns()
+
+        print(self.enemy_list)
 
 
 def main():

@@ -11,13 +11,14 @@ class Main():
 
     def main(self) -> None:
         self.spell_tracker.main()
+        self.cooldown_timer.new_cooldowns(self.spell_tracker.enemy_list)
         for i, enemy in enumerate(self.spell_tracker.enemy_list):
             self.app.configure_row(
                 self.app.row_widgets[i], enemy, self)
         self.app.root.mainloop()
 
     def update_and_start_cooldown(self, enemy, spell_used, cooldown_text_widget):
-        self.spell_tracker.update_game_time()
+        # self.spell_tracker.update_game_time()
         self.cooldown_timer.start_cooldown(
             enemy, spell_used, cooldown_text_widget, self.spell_tracker.game_time)
 

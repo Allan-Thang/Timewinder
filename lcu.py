@@ -46,15 +46,15 @@ class LCU:
     # def load_start_data(self):
     #     self.port = '2999'
 
-    def get_all_game_data(self):
-        r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/allgamedata', headers={
-                         'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=self.ssl_certificate_path, timeout=10)
-        return r
+    # def get_all_game_data(self):
+    #     r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/allgamedata', headers={
+    #                      'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=self.ssl_certificate_path, timeout=10)
+    #     return r
 
-    def get_active_player_data(self):
-        r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/activeplayer', headers={
-                         'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=self.ssl_certificate_path, timeout=10)
-        return r
+    # def get_active_player_data(self):
+    #     r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/activeplayer', headers={
+    #                      'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=self.ssl_certificate_path, timeout=10)
+    #     return r
 
     # def get_active_player_name(self):
     #     r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/activeplayername', headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=f'{self.SSL_cert}')
@@ -72,25 +72,25 @@ class LCU:
         r = requests.get(f'{self.lcu_url}:2999/liveclientdata/playerlist',
                          headers={'Accept': '*/*'}, verify=self.ssl_certificate_path, timeout=10)
         # print(r.json())
-        return r
+        return r.json
 
     # def get_target_player_scores(self, targetPlayer):
     #     r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/playerscores?riotId={targetPlayer}', headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=f'{self.SSL_cert}')
     #     return r
 
-    def get_target_player_summoner_spells(self, targetPlayer):
-        r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/playersummonerspells?riotId={targetPlayer}',
-                         headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=self.ssl_certificate_path, timeout=10)
-        return r
+    # def get_target_player_summoner_spells(self, targetPlayer):
+    #     r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/playersummonerspells?riotId={targetPlayer}',
+    #                      headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=self.ssl_certificate_path, timeout=10)
+    #     return r
 
     # def get_target_player_basic_runes(self, targetPlayer):
     #     r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/playermainrunes?riotId={targetPlayer}')
     #     return r
 
-    def get_target_player_items(self, targetPlayer):
-        r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/playeritems?riotId={targetPlayer}',
+    def get_target_player_items(self, target_riot_id):
+        r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/playeritems?riotId={target_riot_id}',
                          headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=self.ssl_certificate_path, timeout=10)
-        return r
+        return r.json()
 
     # def get_events(self):
     #     r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/eventdata', headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=f'{self.SSL_cert}')
@@ -99,4 +99,4 @@ class LCU:
     def get_game_stats(self):
         r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/gamestats', headers={
                          'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=self.ssl_certificate_path, timeout=10)
-        return r
+        return r.json()
