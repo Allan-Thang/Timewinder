@@ -19,9 +19,12 @@ class Main():
         self.app.root.mainloop()
 
     def update_and_start_cooldown(self, enemy, spell_used, cooldown_text_widget):
+        # ? Before each cooldown: Items
+        # * Get player items > calculate haste > start cooldown
+        # ? Periodically: Game Time + still in game(If time errors, then not in game)
         # self.spell_tracker.update_game_time()
         self.cooldown_timer.start_cooldown(
-            enemy, spell_used, cooldown_text_widget, self.spell_tracker.game_time)
+            enemy, spell_used, cooldown_text_widget)
 
 
 def main():

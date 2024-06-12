@@ -72,7 +72,7 @@ class LCU:
         r = requests.get(f'{self.lcu_url}:2999/liveclientdata/playerlist',
                          headers={'Accept': '*/*'}, verify=self.ssl_certificate_path, timeout=10)
         # print(r.json())
-        return r.json
+        return r.json()
 
     # def get_target_player_scores(self, targetPlayer):
     #     r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/playerscores?riotId={targetPlayer}', headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=f'{self.SSL_cert}')

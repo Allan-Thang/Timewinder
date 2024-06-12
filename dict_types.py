@@ -1,3 +1,4 @@
+from threading import Event
 from typing import Any, TypedDict
 
 
@@ -16,3 +17,4 @@ class Cooldown(TypedDict):
     name: str
     cooldown: int
     thread: Any
+    stop: Event

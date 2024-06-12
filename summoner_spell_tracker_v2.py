@@ -106,7 +106,7 @@ class SpellTracker:
 
         return summoner_haste_sources
 
-    def get_dynamic_summoner_haste_sources(self, enemy):
+    def enemy_dynamic_summoner_haste_sources(self, enemy):
         summoner_haste_sources = {}
 
         if 'Ionian Boots of Lucidity' in enemy['items']:
@@ -258,15 +258,18 @@ class SpellTracker:
             if enemy['championName'] in champion_name:
                 return enemy
 
-    def calculate_enemy_summoner_cooldowns(self):
+    def calculate_all_enemies_summoner_cooldowns(self):
         for enemy in self.enemy_list:
-            self.update_enemy_items(enemy)
-            dynamic_haste_sources = self.get_dynamic_summoner_haste_sources(
-                enemy)
-            # Merge with existing dict
-            enemy['summonerHasteSources'] |= dynamic_haste_sources
-            self.calculate_enemy_summoner_haste(enemy)
-            self.update_enemy_summoner_spell_starting_cooldown(enemy)
+            self.calculate_enemy_summoner_cooldowns(enemy)
+
+    def calculate_enemy_summoner_cooldowns(self, enemy):
+        self.update_enemy_items(enemy)
+        dynamic_haste_sources = self.enemy_dynamic_summoner_haste_sources(
+            enemy)
+        # Merge with existing dict
+        enemy['summonerHasteSources'] |= dynamic_haste_sources
+        self.calculate_enemy_summoner_haste(enemy)
+        self.update_enemy_summoner_spell_starting_cooldown(enemy)
 
     def update_enemy_items(self, enemy):
         enemy_items_data = self.lcu.get_target_player_items(
@@ -289,10 +292,10 @@ class SpellTracker:
             "ARAM": 70,
         }
         self.pulsefire_client = PulsefireClient(self.riot_dev_key)
-        #! DEBUG
+        #! TESTING
         # self.lcu = LCU()
         self.lcu = FakeLCU()
-        #! END
+        #! END TESTING
         self.summoner_spell_icons = {}
         self.game_time: int = 0
         self.game_mode = ''
@@ -303,16 +306,16 @@ class SpellTracker:
         self.inspiration_id = self.parse_runeIDs_for_inspiration_ID(
             self.rune_data)
         self.cosmic_insight_id = self.parse_runeIDs_for_CI_ID(self.rune_data)
-        #! DEBUG
+        #! TESTING
         # self.summoner = asyncio.run(self.pulsefire_client.fetch_summoner())
-        #! END
+        #! END TESTING
 
     def main(self):
-        #! DEBUG
+        #! TESTING
         # active_game = asyncio.run(
         #     self.pulsefire_client.fetch_active_game(self.summoner))
         active_game = FakePFGame().game
-        #! END
+        #! END TESTING
 
         player_list = self.get_player_list()
         self.update_game_time()
@@ -338,7 +341,7 @@ class SpellTracker:
         self.update_all_enemies_base_summoner_cooldowns(
             self.enemy_list, summoner_cd_dict)
 
-        self.calculate_enemy_summoner_cooldowns()
+        self.calculate_all_enemies_summoner_cooldowns()
 
 
 def main():
@@ -347,7 +350,7 @@ def main():
     spell_tracker.main()
     # Get input -> calculate enemy cds -> find respective enemy and spell -> start cd timer
     enemy_identifier, spell_used = None, None  # TODO: input
-    spell_tracker.calculate_enemy_summoner_cooldowns()
+    spell_tracker.calculate_all_enemies_summoner_cooldowns()
     # cooldown_timers.start_cooldown(enemy, spell_used)
 
 
