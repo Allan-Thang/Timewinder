@@ -303,7 +303,9 @@ class SpellTracker:
         self.inspiration_id = self.parse_runeIDs_for_inspiration_ID(
             self.rune_data)
         self.cosmic_insight_id = self.parse_runeIDs_for_CI_ID(self.rune_data)
-        self.summoner = asyncio.run(self.pulsefire_client.fetch_summoner())
+        #! DEBUG
+        # self.summoner = asyncio.run(self.pulsefire_client.fetch_summoner())
+        #! END
 
     def main(self):
         #! DEBUG
@@ -337,8 +339,6 @@ class SpellTracker:
             self.enemy_list, summoner_cd_dict)
 
         self.calculate_enemy_summoner_cooldowns()
-
-        print(self.enemy_list)
 
 
 def main():

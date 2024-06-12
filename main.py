@@ -11,6 +11,7 @@ class Main():
 
     def main(self) -> None:
         self.spell_tracker.main()
+        self.cooldown_timer.in_game = True
         self.cooldown_timer.new_cooldowns(self.spell_tracker.enemy_list)
         for i, enemy in enumerate(self.spell_tracker.enemy_list):
             self.app.configure_row(
