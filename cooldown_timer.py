@@ -22,6 +22,9 @@ class CooldownTimer:
         self._game_time = game_time
 
     def start_game_timer(self, starting_game_time: int):
+        self.pool.submit(self._start_game_timer, starting_game_time)
+
+    def _start_game_timer(self, starting_game_time: int):
         self._game_time = starting_game_time
         while self.in_game:
             sleep(1)
@@ -85,10 +88,14 @@ class CooldownTimer:
     def update_cooldown(self, current_cooldown, active_summoner_spell, widget):
         active_summoner_spell['cooldown'] = current_cooldown
         if current_cooldown == 0:
-            widget.configure(text='Ready')
+            widget.configure(text='Ready', foreground='green')
             return None
         else:
             widget.configure(text=str(current_cooldown))
+            #! Magic print makes the program work
+            print(widget.cget('foreground'))
+            if 'red' not in widget.cget('foreground'):
+                widget.configure(foreground='red')
             return None
 
     def new_cooldowns(self, enemy_list):

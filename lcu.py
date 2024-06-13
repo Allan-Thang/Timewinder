@@ -88,6 +88,7 @@ class LCU:
     #     return r
 
     def get_target_player_items(self, target_riot_id):
+        # r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/playeritems?riotId=Shiva#1920',
         r = requests.get(f'{self.lcu_url}:{self.port}/liveclientdata/playeritems?riotId={target_riot_id}',
                          headers={'Accept': 'application/json', 'Authorization': f'Basic {self.auth_key}'}, verify=self.ssl_certificate_path, timeout=10)
         return r.json()

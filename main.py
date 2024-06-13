@@ -12,6 +12,7 @@ class Main():
     def main(self) -> None:
         self.spell_tracker.main()
         self.cooldown_timer.in_game = True
+        self.cooldown_timer.start_game_timer(self.spell_tracker.game_time)
         self.cooldown_timer.new_cooldowns(self.spell_tracker.enemy_list)
         for i, enemy in enumerate(self.spell_tracker.enemy_list):
             self.app.configure_row(
@@ -23,6 +24,7 @@ class Main():
         # * Get player items > calculate haste > start cooldown
         # ? Periodically: Game Time + still in game(If time errors, then not in game)
         # self.spell_tracker.update_game_time()
+        self.spell_tracker.calculate_enemy_summoner_cooldowns(enemy)
         self.cooldown_timer.start_cooldown(
             enemy, spell_used, cooldown_text_widget)
 
@@ -31,5 +33,6 @@ def main():
     Main().main()
 
 
+# ? API_Key_Link = 'https://developer.riotgames.com'
 if __name__ == '__main__':
     main()
