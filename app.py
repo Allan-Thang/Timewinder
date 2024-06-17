@@ -7,7 +7,7 @@ from PIL import Image, ImageTk
 
 
 class App():
-    # TODO: Import data, Moveable tabs, Timer integration, Refresh
+    # TODO: Moveable tabs, Optimization of startup, Refactor game time tracking
     def __init__(self):
         width = 250
         height = 550
@@ -57,32 +57,6 @@ class App():
         self.row_widgets.append(self.create_champ_row_layout(self.row4))
         self.row_widgets.append(self.create_champ_row_layout(self.row5))
 
-        # print(self.champions)
-
-        # self.header_text = ttk.Label(self.mainframe, text="Spell Tracker",
-        #                              background='white', font=('Brass Mono', 30))
-        # self.header_text.grid(row=0, column=0)
-
-        # self.set_text_field = ttk.Entry(self.mainframe)
-        # self.set_text_field.grid(row=1, column=0, pady=10, sticky='NSEW')
-        # set_text_button = ttk.Button(
-        #     self.mainframe, text="Set Text", command=self.set_text)
-        # set_text_button.grid(row=1, column=1, pady=10)
-
-        # color_options = ['red', 'green', 'blue', 'black']
-        # self.set_color_field = ttk.Combobox(
-        #     self.mainframe, values=color_options)
-        # self.set_color_field.grid(row=2, column=0, pady=10, sticky='NSEW')
-        # set_color_button = ttk.Button(
-        #     self.mainframe, text="Set Color", command=self.set_color)
-        # set_color_button.grid(row=2, column=1, pady=10)
-
-        # self.reverse_text = ttk.Button(
-        #     self.mainframe, text="Reverse Text", command=self.reverse)
-        # self.reverse_text.grid(row=3, column=0, sticky='NSWE', pady=10)
-
-        # Show the main window
-        # self.root.mainloop()
         return
 
     def refresh(self):
@@ -186,22 +160,8 @@ class App():
         widget.configure(command=command)
         return
 
-    def start_cooldown(self, champion_name, summoner_spell_name):
-        # TODO: call cooldown_timer's start_cooldown() function
-        return
-
-    # def set_text(self):
-    #     newtext = self.set_text_field.get()
-    #     self.text.config(text=newtext)
-
-    # def set_color(self):
-    #     newcolor = self.set_color_field.get()
-    #     self.text.config(foreground=newcolor)
-
-    # def reverse(self):
-    #     newtext = self.text.cget('text')
-    #     reversed = newtext[::-1]
-    #     self.text.config(text=reversed)
+    def bind_refresh(self, func):
+        self.configure_button(self.refresh_button, lambda: func())
 
 
 def main():

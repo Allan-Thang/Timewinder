@@ -18,11 +18,11 @@ class CooldownTimer:
         self.out_of_game = Event()
         self.pool = concurrent.futures.ThreadPoolExecutor(max_workers=12)
 
-    def set_game_time(self, game_time: int):
-        self._game_time = game_time
-
     def start_game_timer(self, starting_game_time: int):
         self.pool.submit(self._start_game_timer, starting_game_time)
+
+    def get_game_time(self) -> int:
+        return self._game_time
 
     def set_in_game(self, in_game: bool):
         if in_game:
@@ -32,6 +32,8 @@ class CooldownTimer:
             self.cancel_all_cooldown_timers()
 
     def cancel_all_cooldown_timers(self):
+        if len(self._cooldowns) <= 0:
+            return False
         for cooldown in self._cooldowns:
             cooldown['stop'].set()
 
@@ -42,7 +44,6 @@ class CooldownTimer:
                 self.pool.submit(self.sync_with_game)
             self.out_of_game.wait(1)
             self._game_time += 1
-            print(self._game_time)
 
     def sync_with_game(self):
         #! TESTING
@@ -121,13 +122,15 @@ class CooldownTimer:
     def new_cooldowns(self, enemy_list):
         for enemy in enemy_list:
             for _, summoner_spell in enemy['summonerSpells'].items():
+                cooldowns = []
                 # self._summoner_spell_cooldowns[f'{enemy['championName']}{
                 #     summoner_spell['name']}'] = {}
                 # self._summoner_spell_cooldowns[f'{enemy["championName"]}{
                 #     summoner_spell["name"]}']['cooldown'] = 0
                 # self._summoner_spell_cooldowns[f'{enemy["championName"]}{
                 #     summoner_spell["name"]}']['thread'] = None
-                self._cooldowns.append(Cooldown({'name': f'{enemy["championName"]}{summoner_spell["name"]}', 'cooldown': 0, 'thread': None, 'stop': Event()}))  # nopep8
+                cooldowns.append(Cooldown({'name': f'{enemy["championName"]}{summoner_spell["name"]}', 'cooldown': 0, 'thread': None, 'stop': Event()}))  # nopep8
+                self._cooldowns = cooldowns
         return None
 
     def find_cooldown(self, enemy_name: str, summoner_spell_name: str) -> Cooldown:
@@ -148,3 +151,9 @@ class CooldownTimer:
         else:
             active_summoner_spell['stop'].set()
             return None
+
+    def new_game(self, game_time: int, enemy_list):
+        self.cancel_all_cooldown_timers()
+        self.new_cooldowns(enemy_list)
+        self.set_in_game(True)
+        self.start_game_timer(game_time)

@@ -70,6 +70,10 @@ class SpellTracker:
         self.game_time = self.get_game_time()
         return
 
+    def set_game_time(self, game_time: int) -> None:
+        self.game_time = game_time
+        return
+
     def get_game_mode(self):
         game_mode = self.lcu.get_game_stats()['gameMode']
         return game_mode
@@ -222,11 +226,12 @@ class SpellTracker:
                     break
         return summoner_cooldown_dict
 
-    def update_all_enemies_base_summoner_cooldowns(self, enemy_list, summoner_cd_dict):
+    def update_all_enemies_summoner_spell_base_cooldown(self, enemy_list, summoner_cd_dict):
         for enemy in enemy_list:
-            self.update_enemy_base_summoner_cooldowns(enemy, summoner_cd_dict)
+            self.update_enemy_summoner_spell_base_cooldown(
+                enemy, summoner_cd_dict)
 
-    def update_enemy_base_summoner_cooldowns(self, enemy, summoner_cd_dict):
+    def update_enemy_summoner_spell_base_cooldown(self, enemy, summoner_cd_dict):
         for key, enemy_summoner_spell in enemy['summonerSpells'].items():
             for summoner_spell, cooldown in summoner_cd_dict.items():
                 if enemy_summoner_spell['name'] in summoner_spell:
@@ -257,10 +262,6 @@ class SpellTracker:
         for enemy in self.enemy_list:
             if enemy['championName'] in champion_name:
                 return enemy
-
-    def calculate_all_enemies_summoner_cooldowns(self):
-        for enemy in self.enemy_list:
-            self.calculate_enemy_summoner_cooldowns(enemy)
 
     def calculate_enemy_summoner_cooldowns(self, enemy):
         self.update_enemy_items(enemy)
@@ -338,20 +339,17 @@ class SpellTracker:
         summoner_cd_dict = self.create_summoner_cooldown_dict(
             unique_summoner_spells, self.summoner_spell_data)
 
-        self.update_all_enemies_base_summoner_cooldowns(
+        self.update_all_enemies_summoner_spell_base_cooldown(
             self.enemy_list, summoner_cd_dict)
 
-        self.calculate_all_enemies_summoner_cooldowns()
+        # self.calculate_all_enemies_summoner_cooldowns()
 
 
 def main():
     spell_tracker = SpellTracker()
-    cooldown_timers = CooldownTimer()
     spell_tracker.main()
-    # Get input -> calculate enemy cds -> find respective enemy and spell -> start cd timer
-    enemy_identifier, spell_used = None, None  # TODO: input
-    spell_tracker.calculate_all_enemies_summoner_cooldowns()
-    # cooldown_timers.start_cooldown(enemy, spell_used)
+    for enemy in spell_tracker.enemy_list:
+        spell_tracker.calculate_enemy_summoner_cooldowns(enemy)
 
 
 # ? API_Key_Link = 'https://developer.riotgames.com'
