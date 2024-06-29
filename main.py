@@ -16,11 +16,11 @@ class Main():
 
     def refresh(self):
         self.spell_tracker.main()
+        for i, enemy in enumerate(self.spell_tracker.enemy_list):
+            self.app.configure_row_widgets(
+                self.app.row_widgets_container[i], enemy, self)
         self.cooldown_timer.new_game(
             self.spell_tracker.game_time, self.spell_tracker.enemy_list)
-        for i, enemy in enumerate(self.spell_tracker.enemy_list):
-            self.app.configure_row(
-                self.app.row_widgets[i], enemy, self)
 
     def update_and_start_cooldown(self, enemy, spell_used, cooldown_text_widget):
         self.spell_tracker.set_game_time(self.cooldown_timer.get_game_time())

@@ -1,6 +1,5 @@
 import concurrent.futures
 from threading import Event, current_thread
-from time import sleep
 
 from requests.exceptions import ConnectionError
 
@@ -120,9 +119,9 @@ class CooldownTimer:
             return None
 
     def new_cooldowns(self, enemy_list):
+        cooldowns = []
         for enemy in enemy_list:
             for _, summoner_spell in enemy['summonerSpells'].items():
-                cooldowns = []
                 # self._summoner_spell_cooldowns[f'{enemy['championName']}{
                 #     summoner_spell['name']}'] = {}
                 # self._summoner_spell_cooldowns[f'{enemy["championName"]}{
@@ -130,7 +129,7 @@ class CooldownTimer:
                 # self._summoner_spell_cooldowns[f'{enemy["championName"]}{
                 #     summoner_spell["name"]}']['thread'] = None
                 cooldowns.append(Cooldown({'name': f'{enemy["championName"]}{summoner_spell["name"]}', 'cooldown': 0, 'thread': None, 'stop': Event()}))  # nopep8
-                self._cooldowns = cooldowns
+        self._cooldowns = cooldowns
         return None
 
     def find_cooldown(self, enemy_name: str, summoner_spell_name: str) -> Cooldown:
@@ -140,7 +139,7 @@ class CooldownTimer:
         assert False
 
     def start_cooldown(self, enemy, summoner_spell_name: str, widget):
-        if not self.out_of_game.is_set():
+        if self.out_of_game.is_set():
             assert False, 'Not in game!'
         active_summoner_spell = self.find_cooldown(
             f'{enemy['championName']}', f'{summoner_spell_name}')

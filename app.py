@@ -28,42 +28,49 @@ class App():
         self.mainframe.rowconfigure(0, weight=1)
         self.mainframe.rowconfigure([1, 2, 3, 4, 5], weight=3)
 
-        self.row0 = tk.Frame(self.mainframe, background='red', name='row0')
-        self.row0.grid(row=0, column=0, sticky='NSEW', pady=2, padx=2)
-        self.row0.propagate(False)
+        row0 = tk.Frame(self.mainframe, background='red', name='row0')
+        row0.grid(row=0, column=0, sticky='NSEW', pady=2, padx=2)
+        row0.propagate(False)
 
-        self.row1 = tk.Frame(self.mainframe, background='blue', name='row1')
-        self.row1.grid(row=1, column=0, sticky='NSEW', pady=2, padx=2)
+        row1 = tk.Frame(self.mainframe, background='blue', name='row1')
+        row1.grid(row=1, column=0, sticky='NSEW', pady=2, padx=2)
 
-        self.row2 = tk.Frame(self.mainframe, background='green', name='row2')
-        self.row2.grid(row=2, column=0, sticky='NSEW', pady=2, padx=2)
+        row2 = tk.Frame(self.mainframe, background='green', name='row2')
+        row2.grid(row=2, column=0, sticky='NSEW', pady=2, padx=2)
 
-        self.row3 = tk.Frame(self.mainframe, background='yellow', name='row3')
-        self.row3.grid(row=3, column=0, sticky='NSEW', pady=2, padx=2)
+        row3 = tk.Frame(self.mainframe, background='yellow', name='row3')
+        row3.grid(row=3, column=0, sticky='NSEW', pady=2, padx=2)
 
-        self.row4 = tk.Frame(self.mainframe, background='purple', name='row4')
-        self.row4.grid(row=4, column=0, sticky='NSEW', pady=2, padx=2)
+        row4 = tk.Frame(self.mainframe, background='purple', name='row4')
+        row4.grid(row=4, column=0, sticky='NSEW', pady=2, padx=2)
 
-        self.row5 = tk.Frame(self.mainframe, background='orange', name='row5')
-        self.row5.grid(row=5, column=0, sticky='NSEW', pady=2, padx=2)
+        row5 = tk.Frame(self.mainframe, background='orange', name='row5')
+        row5.grid(row=5, column=0, sticky='NSEW', pady=2, padx=2)
 
-        self.refresh_button = ttk.Button(self.row0, text='Refresh')
+        self.refresh_button = ttk.Button(row0, text='Refresh')
         self.refresh_button.pack(fill='both', expand=True)
 
-        self.row_widgets = []
-        self.row_widgets.append(self.create_champ_row_layout(self.row1))
-        self.row_widgets.append(self.create_champ_row_layout(self.row2))
-        self.row_widgets.append(self.create_champ_row_layout(self.row3))
-        self.row_widgets.append(self.create_champ_row_layout(self.row4))
-        self.row_widgets.append(self.create_champ_row_layout(self.row5))
+        self.row_widgets_container: list[dict] = []
+        self.row_widgets_container.append(
+            self.create_champ_row_layout(row1))
+        self.row_widgets_container.append(
+            self.create_champ_row_layout(row2))
+        self.row_widgets_container.append(
+            self.create_champ_row_layout(row3))
+        self.row_widgets_container.append(
+            self.create_champ_row_layout(row4))
+        self.row_widgets_container.append(
+            self.create_champ_row_layout(row5))
 
         return
 
     def refresh(self):
         print('refresh')
 
-    def create_champ_row_layout(self, row: tk.Frame):
+    def create_champ_row_layout(self, row: tk.Frame) -> dict:
         widgets = {}
+
+        widgets['row'] = row
 
         champ_image = ttk.Label(row, text='ChampImage')
         champ_image.place(relx=0, rely=0, relwidth=0.4,
@@ -90,33 +97,43 @@ class App():
                               relwidth=0.3, relheight=0.5, anchor='nw')
         widgets['summonerSpell2Cooldown'] = summ_2_cooldown
 
-        ttk.Button(row, text='^').place(
+        move_row_up_button = ttk.Button(row, text='^')
+        move_row_up_button.place(
             relx=0.9, rely=0, relwidth=0.1, relheight=0.5, anchor='nw')
+        widgets['moveRowUpButton'] = move_row_up_button
 
-        ttk.Button(row, text='v').place(
+        move_row_down_button = ttk.Button(row, text='v')
+        move_row_down_button.place(
             relx=0.9, rely=0.5, relwidth=0.1, relheight=0.5, anchor='nw')
+        widgets['moveRowDownButton'] = move_row_down_button
 
         return widgets
 
-    def configure_row(self, row, enemy, main_obj) -> None:
+    def configure_row_widgets(self, row_widgets, enemy, main_obj) -> None:
         # Champ Image
         self.configure_champion_image(
-            row['championImage'], enemy['championIcon'])
+            row_widgets['championImage'], enemy['championIcon'])
         # Champ Name
         # self.configure_text(row['championName'], enemy['championName'])
         # Summoner 1 Image
-        self.configure_summoner_image(row['summonerSpell1Image'],
+        self.configure_summoner_image(row_widgets['summonerSpell1Image'],
                                       enemy['summonerSpells']['summonerSpellOne']['icon'])
         # Summoner 1 Cooldown
         # self.configure_button(row['summonerSpell1Icon'], lambda: print('test'))
-        self.configure_button(row['summonerSpell1Image'], lambda: main_obj.update_and_start_cooldown(
-            enemy, enemy['summonerSpells']['summonerSpellOne']['name'], row['summonerSpell1Cooldown']))
+        self.configure_button(row_widgets['summonerSpell1Image'], lambda: main_obj.update_and_start_cooldown(
+            enemy, enemy['summonerSpells']['summonerSpellOne']['name'], row_widgets['summonerSpell1Cooldown']))
         # Summoner 2 Image
-        self.configure_summoner_image(row['summonerSpell2Image'],
+        self.configure_summoner_image(row_widgets['summonerSpell2Image'],
                                       enemy['summonerSpells']['summonerSpellTwo']['icon'])
         # Summoner 2 Cooldown
-        self.configure_button(row['summonerSpell2Image'], lambda: main_obj.update_and_start_cooldown(
-            enemy, enemy['summonerSpells']['summonerSpellTwo']['name'], row['summonerSpell2Cooldown']))
+        self.configure_button(row_widgets['summonerSpell2Image'], lambda: main_obj.update_and_start_cooldown(
+            enemy, enemy['summonerSpells']['summonerSpellTwo']['name'], row_widgets['summonerSpell2Cooldown']))
+        # Move Row Up Button
+        self.configure_button(row_widgets['moveRowUpButton'],
+                              lambda: self.move_row_up(row_widgets))
+        # Move Row Down Button
+        self.configure_button(row_widgets['moveRowDownButton'],
+                              lambda: self.move_row_down(row_widgets))
         return
 
     def configure_champion_image(self, widget, image):
@@ -162,6 +179,37 @@ class App():
 
     def bind_refresh(self, func):
         self.configure_button(self.refresh_button, lambda: func())
+
+    def move_row_up(self, active_row_widgets) -> None:
+        # Find row number
+        row_number = active_row_widgets['row'].grid_info()['row']
+        if row_number <= 1:
+            return
+
+        self.swap_rows(row_number, row_number-1)
+        return
+
+    def move_row_down(self, active_row_widgets) -> None:
+        # Find row number
+        row_number = active_row_widgets['row'].grid_info()['row']
+        if row_number >= len(self.row_widgets_container):
+            return
+
+        self.swap_rows(row_number, row_number+1)
+        return
+
+    def swap_rows(self, row_number_1, row_number_2) -> None:
+        # row_1 = self.row_widgets_container[row_1_index]['row']
+        # row_2 = self.row_widgets_container[row_2_index]['row']
+        row_1 = self.row_widgets_container[row_number_1-1]['row']
+        row_2 = self.row_widgets_container[row_number_2-1]['row']
+
+        row_1.grid(row=row_number_2)
+        row_2.grid(row=row_number_1)
+
+        self.row_widgets_container[row_number_1-1], self.row_widgets_container[
+            row_number_2-1] = self.row_widgets_container[row_number_2-1], self.row_widgets_container[row_number_1-1]
+        return
 
 
 def main():

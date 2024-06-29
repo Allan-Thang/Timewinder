@@ -1,10 +1,8 @@
-import asyncio
 from os import getenv
 
 from dotenv import load_dotenv
 from riotwatcher import LolWatcher
 
-from cooldown_timer import CooldownTimer
 from fake_lcu import FakeLCU
 from fake_pf_game import FakePFGame
 from lcu import LCU
