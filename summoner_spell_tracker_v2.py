@@ -1,3 +1,4 @@
+import copy
 from os import getenv
 
 from dotenv import load_dotenv
@@ -130,7 +131,7 @@ class SpellTracker:
         new_dict['level'] = enemy['level']
         new_dict['items'] = []
 
-        new_dict['summonerSpells'] = enemy['summonerSpells']
+        new_dict['summonerSpells'] = copy.deepcopy(enemy['summonerSpells'])
         for key, summoner_spell in new_dict['summonerSpells'].items():
             spell_name = str(summoner_spell['displayName'])
             if 'Teleport' in spell_name:
@@ -293,7 +294,8 @@ class SpellTracker:
         self.pulsefire_client = PulsefireClient(self.riot_dev_key)
         #! TESTING
         # self.lcu = LCU()
-        self.lcu = FakeLCU()
+        self.alt_lcu = False
+        self.lcu = FakeLCU(self.alt_lcu)
         #! END TESTING
         self.summoner_spell_icons = {}
         self.game_time: int = 0
@@ -314,6 +316,7 @@ class SpellTracker:
         # active_game = asyncio.run(
         #     self.pulsefire_client.fetch_active_game(self.summoner))
         active_game = FakePFGame().game
+        self.lcu = FakeLCU(self.alt_lcu)
         #! END TESTING
 
         player_list = self.get_player_list()
@@ -340,7 +343,13 @@ class SpellTracker:
         self.update_all_enemies_summoner_spell_base_cooldown(
             self.enemy_list, summoner_cd_dict)
 
+        self.alt_lcu = True
+
         # self.calculate_all_enemies_summoner_cooldowns()
+
+    def refresh(self):
+        self.game_mode = ''
+        self.enemy_list = {}
 
 
 def main():

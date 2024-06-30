@@ -15,6 +15,7 @@ class Main():
         self.app.root.mainloop()
 
     def refresh(self):
+        self.spell_tracker.refresh()
         self.spell_tracker.main()
         for i, enemy in enumerate(self.spell_tracker.enemy_list):
             self.app.configure_row_widgets(

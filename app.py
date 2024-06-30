@@ -7,7 +7,7 @@ from PIL import Image, ImageTk
 
 
 class App():
-    # TODO: Moveable tabs, Optimization of startup, Refactor game time tracking
+    # TODO: Optimization of startup, Refactor game time tracking
     def __init__(self):
         width = 250
         height = 550
