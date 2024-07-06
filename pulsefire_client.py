@@ -8,8 +8,6 @@ import requests
 from dotenv import load_dotenv
 from pulsefire.clients import CDragonClient, RiotAPIClient
 
-# puuid = 4TpQ_LY5CQDij-Qi8UjOtM4I61M4HqGVXfY1bXi66MM4UpdeyuWnWKk7eFvZD5ESH659NcmEWBP0Wg
-
 
 class PulsefireClient():
 

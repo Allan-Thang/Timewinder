@@ -47,7 +47,7 @@ class SpellTracker:
 
         inspiration_slots = dd_rune_ids[inspiration_tree_index]['slots']
 
-        for row, row_data in enumerate(inspiration_slots):
+        for row, _ in enumerate(inspiration_slots):
             for rune, rune_data in enumerate(inspiration_slots[row]['runes']):
                 if CI_key in rune_data['key']:
                     return inspiration_slots[row]['runes'][rune]['id']

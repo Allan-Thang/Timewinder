@@ -1,4 +1,3 @@
-import threading
 import tkinter as tk
 from io import BytesIO
 from tkinter import ttk
@@ -7,7 +6,7 @@ from PIL import Image, ImageTk
 
 
 class App():
-    # TODO: Optimization of startup, Refactor game time tracking
+    # TODO: Optimization of startup, Refactor game time tracking, Refactor cooldown tracking (track when started and use game time)
     def __init__(self):
         width = 250
         height = 550
@@ -120,12 +119,14 @@ class App():
                                       enemy['summonerSpells']['summonerSpellOne']['icon'])
         # Summoner 1 Cooldown
         # self.configure_button(row['summonerSpell1Icon'], lambda: print('test'))
+        self.configure_text(row_widgets['summonerSpell1Cooldown'], 'Ready')
         self.configure_button(row_widgets['summonerSpell1Image'], lambda: main_obj.update_and_start_cooldown(
             enemy, enemy['summonerSpells']['summonerSpellOne']['name'], row_widgets['summonerSpell1Cooldown']))
         # Summoner 2 Image
         self.configure_summoner_image(row_widgets['summonerSpell2Image'],
                                       enemy['summonerSpells']['summonerSpellTwo']['icon'])
         # Summoner 2 Cooldown
+        self.configure_text(row_widgets['summonerSpell2Cooldown'], 'Ready')
         self.configure_button(row_widgets['summonerSpell2Image'], lambda: main_obj.update_and_start_cooldown(
             enemy, enemy['summonerSpells']['summonerSpellTwo']['name'], row_widgets['summonerSpell2Cooldown']))
         # Move Row Up Button
@@ -178,7 +179,7 @@ class App():
         return
 
     def bind_refresh(self, func):
-        self.configure_button(self.refresh_button, lambda: func())
+        self.configure_button(self.refresh_button, func)
 
     def move_row_up(self, active_row_widgets) -> None:
         # Find row number

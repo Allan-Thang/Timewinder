@@ -16,6 +16,10 @@ class CooldownTimer:
         self._game_time: int = 0
         self.out_of_game = Event()
         self.pool = concurrent.futures.ThreadPoolExecutor(max_workers=12)
+        # ? Immediately take off this amount when starting a cooldown
+        self.rush = 5
+        # TODO: game_time_tracker.add_in_game_observer_callback(self.in_game_callback)
+        # TODO: game_time_tracker.add_game_time_difference_observer_callback(self.sync_with_game)
 
     def start_game_timer(self, starting_game_time: int):
         self.pool.submit(self._start_game_timer, starting_game_time)
@@ -35,6 +39,10 @@ class CooldownTimer:
             return False
         for cooldown in self._cooldowns:
             cooldown['stop'].set()
+
+    def in_game_callback(self, in_game: bool):
+        if not in_game:
+            self.cancel_all_cooldown_timers()
 
     def _start_game_timer(self, starting_game_time: int):
         self._game_time = starting_game_time
@@ -71,11 +79,11 @@ class CooldownTimer:
             cooldown['cooldown'] -= advance_by
 
     def track_summoner_spell_cooldown(self, enemy, summoner_spell_name: str, widget, active_summoner_spell: Cooldown):
-        for key, summoner_spell in enemy['summonerSpells'].items():
+        for _, summoner_spell in enemy['summonerSpells'].items():
             if summoner_spell_name in summoner_spell['name']:
                 active_summoner_spell['thread'] = current_thread()
                 # self.countdown(summoner_spell['startingCooldown'])
-                active_summoner_spell['cooldown'] = summoner_spell['startingCooldown']
+                active_summoner_spell['cooldown'] = summoner_spell['startingCooldown'] - self.rush
                 # summoner_spell['currentCooldown'] = current_cooldown
                 # self.update_cooldown(
                 #     current_cooldown, active_summoner_spell, widget)
@@ -83,13 +91,13 @@ class CooldownTimer:
                     # summoner_spell['currentCooldown'] = current_cooldown
                     # enemy['summonerSpells'][key] = summoner_spell
                     self.update_cooldown(
-                        active_summoner_spell['cooldown'], active_summoner_spell, widget)
+                        active_summoner_spell['cooldown'], widget)
                     active_summoner_spell['stop'].wait(1)
                     active_summoner_spell['cooldown'] -= 1
                     if 'Teleport' in summoner_spell_name:
                         active_summoner_spell['cooldown'] = self.checked_teleport_cooldown(
                             summoner_spell, active_summoner_spell['cooldown'])
-                self.update_cooldown(0, active_summoner_spell, widget)
+                self.update_cooldown(0, widget)
                 active_summoner_spell['thread'] = None
                 active_summoner_spell['stop'].clear()
                 print(f'{enemy['championName']}\'s {summoner_spell["name"]} is ready!')  # nopep8
@@ -106,15 +114,13 @@ class CooldownTimer:
         else:
             return current_cooldown
 
-    def update_cooldown(self, current_cooldown, active_summoner_spell, widget):
-        if current_cooldown == 0:
+    def update_cooldown(self, current_cooldown, widget):
+        if current_cooldown <= 0:
             widget.configure(text='Ready', foreground='green')
             return None
         else:
             widget.configure(text=str(current_cooldown))
-            #! Magic print makes the program work
-            print(widget.cget('foreground'))
-            if 'red' not in widget.cget('foreground'):
+            if 'red' not in str(widget.cget('foreground')):
                 widget.configure(foreground='red')
             return None
 
@@ -143,13 +149,12 @@ class CooldownTimer:
             assert False, 'Not in game!'
         active_summoner_spell = self.find_cooldown(
             f'{enemy['championName']}', f'{summoner_spell_name}')
-        if active_summoner_spell['thread'] is None:
-            self.pool.submit(self.track_summoner_spell_cooldown,
-                             enemy, summoner_spell_name, widget, active_summoner_spell)
-            return None
-        else:
+        if active_summoner_spell['thread'] is not None:
             active_summoner_spell['stop'].set()
             return None
+        self.pool.submit(self.track_summoner_spell_cooldown, enemy,
+                         summoner_spell_name, widget, active_summoner_spell)
+        return None
 
     def new_game(self, game_time: int, enemy_list):
         self.cancel_all_cooldown_timers()

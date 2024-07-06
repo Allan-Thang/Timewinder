@@ -2,8 +2,10 @@ from app import App
 from cooldown_timer import CooldownTimer
 from summoner_spell_tracker_v2 import SpellTracker
 
+#! pyinstaller --name Timewinder --onefile --windowed --icon=icon.icon main.py
 
-class Main():
+
+class Timewinder():
     def __init__(self) -> None:
         self.spell_tracker: SpellTracker = SpellTracker()
         self.cooldown_timer: CooldownTimer = CooldownTimer()
@@ -31,7 +33,7 @@ class Main():
 
 
 def main():
-    Main().main()
+    Timewinder().main()
 
 
 # ? API_Key_Link = 'https://developer.riotgames.com'

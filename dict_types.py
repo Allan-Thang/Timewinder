@@ -15,6 +15,6 @@ class Enemy(TypedDict):
 
 class Cooldown(TypedDict):
     name: str
-    cooldown: int
+    cooldown: float
     thread: Any
     stop: Event
