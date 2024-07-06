@@ -81,8 +81,9 @@ class GameTimeTracker:
                 observer(difference)
 
 
-gtt = GameTimeTracker()
-gtt.add_game_time_difference_observer_callback(print)
-gtt.add_in_game_observer_callback(print)
-gtt.game_time = 20
-gtt.in_game = True
+if __name__ == '__main__':
+    gtt = GameTimeTracker()
+    gtt.add_game_time_difference_observer_callback(print)
+    gtt.add_in_game_observer_callback(print)
+    gtt.game_time = 20
+    gtt.in_game = True

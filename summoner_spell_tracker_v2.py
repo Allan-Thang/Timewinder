@@ -6,6 +6,7 @@ from riotwatcher import LolWatcher
 
 from fake_lcu import FakeLCU
 from fake_pf_game import FakePFGame
+from game_time_tracker import GameTimeTracker
 from lcu import LCU
 # from pulsefire.clients import RiotAPIClient
 from pulsefire_client import PulsefireClient
@@ -60,18 +61,6 @@ class SpellTracker:
     def get_player_list(self):
         player_list = self.lcu.get_all_players()
         return player_list
-
-    def get_game_time(self) -> int:
-        game_time = int(self.lcu.get_game_stats()['gameTime'])
-        return game_time
-
-    def update_game_time(self) -> None:
-        self.game_time = self.get_game_time()
-        return
-
-    def set_game_time(self, game_time: int) -> None:
-        self.game_time = game_time
-        return
 
     def get_game_mode(self):
         game_mode = self.lcu.get_game_stats()['gameMode']
@@ -250,7 +239,7 @@ class SpellTracker:
             enemy['summonerSpells'][key] = summoner_spell
 
     def enemy_teleport_base_cooldown(self, enemy, base_cooldown):
-        if (self.game_time) >= 600:
+        if (self.gtt.game_time) >= 600:
             return base_cooldown - (10 * min(enemy['level'], 10))
         return base_cooldown
 
@@ -279,8 +268,9 @@ class SpellTracker:
             enemy_items.append(item['displayName'])
         enemy['items'] = enemy_items
 
-    def __init__(self):
+    def __init__(self, gtt: GameTimeTracker):
         load_dotenv()
+        self.gtt = gtt
         self.riot_dev_key: str = str(getenv('RIOT_DEV_API_KEY'))
         self.my_summoner_name = getenv('SUMMONER_NAME')
         self.my_tag_line = getenv('GAME_TAG')
@@ -298,7 +288,6 @@ class SpellTracker:
         self.lcu = FakeLCU(self.alt_lcu)
         #! END TESTING
         self.summoner_spell_icons = {}
-        self.game_time: int = 0
         self.game_mode = ''
         self.enemy_list = []
 
@@ -320,7 +309,6 @@ class SpellTracker:
         #! END TESTING
 
         player_list = self.get_player_list()
-        self.update_game_time()
         self.game_mode = self.get_game_mode()
         my_team = self.get_my_team(self.riot_id, player_list)
 
@@ -353,7 +341,7 @@ class SpellTracker:
 
 
 def main():
-    spell_tracker = SpellTracker()
+    spell_tracker = SpellTracker(GameTimeTracker())
     spell_tracker.main()
     for enemy in spell_tracker.enemy_list:
         spell_tracker.calculate_enemy_summoner_cooldowns(enemy)

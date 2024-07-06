@@ -555,7 +555,7 @@ class FakeLCU:
                 },
                 "gameData": {
                     "gameMode": "CLASSIC",
-                    "gameTime": 36.22279357910156,
+                    "gameTime": 55.22279357910156,
                     "mapName": "Map11",
                     "mapNumber": 11,
                     "mapTerrain": "Default"
@@ -1115,7 +1115,7 @@ class FakeLCU:
                 },
                 "gameData": {
                     "gameMode": "CLASSIC",
-                    "gameTime": 36.22279357910156,
+                    "gameTime": 55.22279357910156,
                     "mapName": "Map11",
                     "mapNumber": 11,
                     "mapTerrain": "Default"
