@@ -1,38 +1,21 @@
 import concurrent.futures
 from threading import Event, current_thread
 
-from requests.exceptions import ConnectionError
-
 from dict_types import Cooldown
-from fake_lcu import FakeLCU
-from lcu import LCU
+from game_time_tracker import GameTimeTracker
 
 
 class CooldownTimer:
-    def __init__(self):
+    def __init__(self, gtt: GameTimeTracker):
         # ? E.g. 'ZoeFlash': {cooldown: 100, thread: thread}
-        # self._summoner_spell_cooldowns = {}
+        self.gtt = gtt
         self._cooldowns: list[Cooldown] = []
-        self._game_time: int = 0
-        self.out_of_game = Event()
         self.pool = concurrent.futures.ThreadPoolExecutor(max_workers=12)
         # ? Immediately take off this amount when starting a cooldown
         self.rush = 5
-        # TODO: game_time_tracker.add_in_game_observer_callback(self.in_game_callback)
-        # TODO: game_time_tracker.add_game_time_difference_observer_callback(self.sync_with_game)
-
-    def start_game_timer(self, starting_game_time: int):
-        self.pool.submit(self._start_game_timer, starting_game_time)
-
-    def get_game_time(self) -> int:
-        return self._game_time
-
-    def set_in_game(self, in_game: bool):
-        if in_game:
-            self.out_of_game.clear()
-        else:
-            self.out_of_game.set()
-            self.cancel_all_cooldown_timers()
+        self.gtt.add_in_game_observer_callback(self.in_game_callback)
+        self.gtt.add_game_time_difference_observer_callback(
+            self.advance_all_cooldowns)
 
     def cancel_all_cooldown_timers(self):
         if len(self._cooldowns) <= 0:
@@ -44,52 +27,16 @@ class CooldownTimer:
         if not in_game:
             self.cancel_all_cooldown_timers()
 
-    def _start_game_timer(self, starting_game_time: int):
-        self._game_time = starting_game_time
-        while not self.out_of_game.is_set():
-            if self._game_time % 60 == 0:
-                self.pool.submit(self.sync_with_game)
-            self.out_of_game.wait(1)
-            self._game_time += 1
-
-    def sync_with_game(self):
-        #! TESTING
-        # lcu = LCU()
-        lcu = FakeLCU()
-        #! END TESTING
-        try:
-            game_stats = lcu.get_game_stats()
-        except ConnectionError as err:
-            print(err)
-            print('Potentially not in game')
-            self.out_of_game.set()
-            return None
-        else:
-            self.sync_game_time(int(game_stats['gameTime']))
-            return None
-
-    def sync_game_time(self, game_time: int):
-        difference = game_time - self._game_time
-        if abs(difference) > 1:
-            self._game_time = game_time
-            self.advance_all_cooldowns(difference)
-
-    def advance_all_cooldowns(self, advance_by: int):
+    def advance_all_cooldowns(self, advance_by: float):
         for cooldown in self._cooldowns:
-            cooldown['cooldown'] -= advance_by
+            cooldown['cooldown'] -= int(advance_by)
 
     def track_summoner_spell_cooldown(self, enemy, summoner_spell_name: str, widget, active_summoner_spell: Cooldown):
         for _, summoner_spell in enemy['summonerSpells'].items():
             if summoner_spell_name in summoner_spell['name']:
                 active_summoner_spell['thread'] = current_thread()
-                # self.countdown(summoner_spell['startingCooldown'])
                 active_summoner_spell['cooldown'] = summoner_spell['startingCooldown'] - self.rush
-                # summoner_spell['currentCooldown'] = current_cooldown
-                # self.update_cooldown(
-                #     current_cooldown, active_summoner_spell, widget)
                 while active_summoner_spell['cooldown'] > 0 and not active_summoner_spell['stop'].is_set():
-                    # summoner_spell['currentCooldown'] = current_cooldown
-                    # enemy['summonerSpells'][key] = summoner_spell
                     self.update_cooldown(
                         active_summoner_spell['cooldown'], widget)
                     active_summoner_spell['stop'].wait(1)
@@ -105,7 +52,7 @@ class CooldownTimer:
         assert False
 
     def checked_teleport_cooldown(self, summoner_spell, current_cooldown: int) -> int:
-        if self._game_time < 600:
+        if self.gtt.game_time < 600:
             return current_cooldown
 
         starting_cooldown: int = summoner_spell['startingCooldown']
@@ -128,12 +75,6 @@ class CooldownTimer:
         cooldowns = []
         for enemy in enemy_list:
             for _, summoner_spell in enemy['summonerSpells'].items():
-                # self._summoner_spell_cooldowns[f'{enemy['championName']}{
-                #     summoner_spell['name']}'] = {}
-                # self._summoner_spell_cooldowns[f'{enemy["championName"]}{
-                #     summoner_spell["name"]}']['cooldown'] = 0
-                # self._summoner_spell_cooldowns[f'{enemy["championName"]}{
-                #     summoner_spell["name"]}']['thread'] = None
                 cooldowns.append(Cooldown({'name': f'{enemy["championName"]}{summoner_spell["name"]}', 'cooldown': 0, 'thread': None, 'stop': Event()}))  # nopep8
         self._cooldowns = cooldowns
         return None
@@ -145,7 +86,7 @@ class CooldownTimer:
         assert False
 
     def start_cooldown(self, enemy, summoner_spell_name: str, widget):
-        if self.out_of_game.is_set():
+        if not self.gtt.in_game:
             assert False, 'Not in game!'
         active_summoner_spell = self.find_cooldown(
             f'{enemy['championName']}', f'{summoner_spell_name}')
@@ -156,8 +97,6 @@ class CooldownTimer:
                          summoner_spell_name, widget, active_summoner_spell)
         return None
 
-    def new_game(self, game_time: int, enemy_list):
+    def new_game(self, enemy_list):
         self.cancel_all_cooldown_timers()
         self.new_cooldowns(enemy_list)
-        self.set_in_game(True)
-        self.start_game_timer(game_time)
