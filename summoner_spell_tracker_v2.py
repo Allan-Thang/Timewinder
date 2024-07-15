@@ -1,3 +1,4 @@
+import asyncio
 import copy
 from os import getenv
 
@@ -251,6 +252,10 @@ class SpellTracker:
             if enemy['championName'] in champion_name:
                 return enemy
 
+    def calculate_all_enemy_summoner_cooldowns(self):
+        for enemy in self.enemy_list:
+            self.calculate_enemy_summoner_cooldowns(enemy)
+
     def calculate_enemy_summoner_cooldowns(self, enemy):
         self.update_enemy_items(enemy)
         dynamic_haste_sources = self.enemy_dynamic_summoner_haste_sources(
@@ -268,9 +273,10 @@ class SpellTracker:
             enemy_items.append(item['displayName'])
         enemy['items'] = enemy_items
 
-    def __init__(self, gtt: GameTimeTracker):
+    def __init__(self, gtt: GameTimeTracker, testing: bool = False):
         load_dotenv()
         self.gtt = gtt
+        self.testing = testing
         self.riot_dev_key: str = str(getenv('RIOT_DEV_API_KEY'))
         self.my_summoner_name = getenv('SUMMONER_NAME')
         self.my_tag_line = getenv('GAME_TAG')
@@ -283,13 +289,15 @@ class SpellTracker:
         }
         self.pulsefire_client = PulsefireClient(self.riot_dev_key)
         #! TESTING
-        # self.lcu = LCU()
-        self.alt_lcu = False
-        self.lcu = FakeLCU(self.alt_lcu)
+        if testing:
+            self.alt_lcu = False
+            self.lcu = FakeLCU(self.alt_lcu)
+        else:
+            self.lcu = LCU()
         #! END TESTING
         self.summoner_spell_icons = {}
         self.game_mode = ''
-        self.enemy_list = []
+        self.enemy_list: list[dict] = []
 
         self.rune_data, self.summoner_spell_data = self.fetch_data_dragon_relevant_data()
 
@@ -297,14 +305,17 @@ class SpellTracker:
             self.rune_data)
         self.cosmic_insight_id = self.parse_runeIDs_for_CI_ID(self.rune_data)
         #! TESTING
-        # self.summoner = asyncio.run(self.pulsefire_client.fetch_summoner())
+        if not testing:
+            self.summoner = asyncio.run(self.pulsefire_client.fetch_summoner())
         #! END TESTING
 
     def main(self):
         #! TESTING
-        # active_game = asyncio.run(
-        #     self.pulsefire_client.fetch_active_game(self.summoner))
-        active_game = FakePFGame().game
+        if self.testing:
+            active_game = FakePFGame().game
+        else:
+            active_game = asyncio.run(
+                self.pulsefire_client.fetch_active_game(self.summoner))
         self.lcu = FakeLCU(self.alt_lcu)
         #! END TESTING
 
@@ -331,13 +342,14 @@ class SpellTracker:
         self.update_all_enemies_summoner_spell_base_cooldown(
             self.enemy_list, summoner_cd_dict)
 
-        self.alt_lcu = True
+        if self.testing:
+            self.alt_lcu = True
 
         # self.calculate_all_enemies_summoner_cooldowns()
 
     def refresh(self):
         self.game_mode = ''
-        self.enemy_list = {}
+        self.enemy_list = []
 
 
 def main():

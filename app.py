@@ -1,19 +1,29 @@
+import sys
 import tkinter as tk
 from io import BytesIO
+from time import sleep
 from tkinter import ttk
 
 from PIL import Image, ImageTk
 
+from game_time_tracker import GameTimeTracker
+
+#! When the main thread is paused/sleeping, tk window cannot be configured. So we have to do it in the main thread
+# TODO: Change widget updating to be done in the main thread. GL
+# ? Observer pattern happens on the thread that calls the observer.
+# ? Check out root.after()
+
 
 class App():
-    # TODO: Optimization of startup, Refactor game time tracking, Refactor cooldown tracking (track when started and use game time)
-    def __init__(self):
+    def __init__(self, gtt: GameTimeTracker):
+        self.gtt = gtt
         width = 250
         height = 550
         title = 'Shiva\'s Summoner Spell Tracker'
         self._images = {}
         # Create the main window
         self.root = tk.Tk()
+        self.root.protocol('WM_DELETE_WINDOW', self.on_close)
         # Set the window size (widthxheight)
         self.root.geometry(f'{width}x{height}')
         # Change the title of the window
@@ -76,6 +86,10 @@ class App():
                           relheight=1, anchor='nw')
         widgets['championImage'] = champ_image
 
+        # champ_name = ttk.Label(row, text='ChampName')
+        champ_name = ''
+        widgets['championName'] = champ_name
+
         summ_1_image = tk.Button(row, text='Summ1Image')
         summ_1_image.place(relx=0.4, y=0, relwidth=0.2,
                            relheight=0.5, anchor='nw')
@@ -113,22 +127,26 @@ class App():
         self.configure_champion_image(
             row_widgets['championImage'], enemy['championIcon'])
         # Champ Name
-        # self.configure_text(row['championName'], enemy['championName'])
+        # self.configure_text(row_widgets['championName'], enemy['championName'])
+        row_widgets['championName'] = enemy['championName']
         # Summoner 1 Image
+        self.configure_text(row_widgets['summonerSpell1Image'],
+                            enemy['summonerSpells']['summonerSpellOne']['name'])
         self.configure_summoner_image(row_widgets['summonerSpell1Image'],
                                       enemy['summonerSpells']['summonerSpellOne']['icon'])
         # Summoner 1 Cooldown
-        # self.configure_button(row['summonerSpell1Icon'], lambda: print('test'))
         self.configure_text(row_widgets['summonerSpell1Cooldown'], 'Ready')
         self.configure_button(row_widgets['summonerSpell1Image'], lambda: main_obj.update_and_start_cooldown(
-            enemy, enemy['summonerSpells']['summonerSpellOne']['name'], row_widgets['summonerSpell1Cooldown']))
+            enemy, enemy['summonerSpells']['summonerSpellOne']['name']))
         # Summoner 2 Image
+        self.configure_text(row_widgets['summonerSpell2Image'],
+                            enemy['summonerSpells']['summonerSpellTwo']['name'])
         self.configure_summoner_image(row_widgets['summonerSpell2Image'],
                                       enemy['summonerSpells']['summonerSpellTwo']['icon'])
         # Summoner 2 Cooldown
         self.configure_text(row_widgets['summonerSpell2Cooldown'], 'Ready')
         self.configure_button(row_widgets['summonerSpell2Image'], lambda: main_obj.update_and_start_cooldown(
-            enemy, enemy['summonerSpells']['summonerSpellTwo']['name'], row_widgets['summonerSpell2Cooldown']))
+            enemy, enemy['summonerSpells']['summonerSpellTwo']['name']))
         # Move Row Up Button
         self.configure_button(row_widgets['moveRowUpButton'],
                               lambda: self.move_row_up(row_widgets))
@@ -212,12 +230,18 @@ class App():
             row_number_2-1] = self.row_widgets_container[row_number_2-1], self.row_widgets_container[row_number_1-1]
         return
 
+    def on_close(self):
+        self.gtt.quit()
+        sleep(1)
+        self.root.quit()
+        sys.exit()
+
 
 def main():
     """
     main()
     """
-    app = App()
+    app = App(GameTimeTracker())
     # pf = Pulsefire()
     # champ_image = pf.fetch_champ_image('Zoe')
     # app.configure_image(app.champions['champ1']['championImage'], champ_image)

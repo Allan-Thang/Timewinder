@@ -18,3 +18,13 @@ class Cooldown(TypedDict):
     cooldown: float
     thread: Any
     stop: Event
+
+
+class NewCooldown(TypedDict):
+    champion_name: str
+    spell_name: str
+    on_cooldown: bool
+    start_time: float
+    starting_cooldown: float
+    remaining_time: float
+    widget: Any
