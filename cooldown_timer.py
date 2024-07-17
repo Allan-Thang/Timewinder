@@ -1,14 +1,14 @@
 import concurrent.futures
 from threading import Event
 
-from dict_types import NewCooldown
+from dict_types import CooldownData, EnemyData, RowWidgets, SummonerSpellData
 from game_time_tracker import GameTimeTracker
 
 
 class CooldownTimer:
     def __init__(self, gtt: GameTimeTracker):
         self.gtt = gtt
-        self.cooldowns: list[NewCooldown] = []
+        self.cooldowns: list[CooldownData] = []
         self.pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.stop_cooldowns = Event()
         # ? Immediately take off this amount when starting a cooldown
@@ -28,7 +28,7 @@ class CooldownTimer:
         if not in_game:
             self.stop_cooldowns.set()
 
-    def update_teleport_starting_cooldown(self, enemy_list: list[dict]) -> None:
+    def update_teleport_starting_cooldown(self, enemy_list: list[EnemyData]) -> None:
         # At 10 minutes, Teleport upgrades to Unleashed Teleport and reduces the cooldown to its new max, including haste
         # Find all 'Teleport' cooldowns, update their starting cooldown and update current cooldown
         for cooldown in self.cooldowns:
@@ -38,7 +38,7 @@ class CooldownTimer:
                 continue
             for enemy in enemy_list:
                 # Find the corresponding enemy
-                if not enemy['championName'] in cooldown['champion_name']:
+                if not enemy['champion_name'] in cooldown['champion_name']:
                     continue
                 # Get their Teleport spell if it exists
                 teleport = self.find_enemy_summoner_spell(
@@ -46,7 +46,7 @@ class CooldownTimer:
                 # If it doesn't exist, break and move to the next enemy
                 if not teleport:
                     break
-                cooldown['starting_cooldown'] = teleport['startingCooldown']
+                cooldown['starting_cooldown'] = teleport['starting_cooldown']
                 # Use the lower of the 2 cooldowns
                 new_cooldown = cooldown['starting_cooldown']
                 old_cooldown = cooldown['remaining_time']
@@ -97,44 +97,44 @@ class CooldownTimer:
     #             widget.configure(foreground='red')
     #         return None
 
-    def new_cooldowns(self, enemy_list: list[dict], row_widgets_container) -> None:
+    def new_cooldowns(self, enemy_list: list[EnemyData], row_widgets_container) -> None:
         cooldowns = []
         for enemy in enemy_list:
-            for _, summoner_spell in enemy['summonerSpells'].items():
+            for summoner_spell in enemy['summoner_spells']:
                 # cooldowns.append(Cooldown({'name': f'{enemy["championName"]}{summoner_spell["name"]}', 'cooldown': 0, 'thread': None, 'stop': Event()}))  # nopep8
                 widget = self.find_widget(
-                    enemy["championName"], summoner_spell["name"], row_widgets_container)
-                cooldowns.append(NewCooldown({'champion_name': enemy["championName"], 'spell_name': summoner_spell["name"], 'on_cooldown': False, 'start_time': 0, 'starting_cooldown': 0, 'remaining_time': 0, 'widget': widget}))  # nopep8
+                    enemy['champion_name'], summoner_spell['name'], row_widgets_container)
+                cooldowns.append(CooldownData({'champion_name': enemy['champion_name'], 'spell_name': summoner_spell['name'], 'on_cooldown': False, 'start_time': 0, 'starting_cooldown': 0, 'remaining_time': 0, 'widget': widget}))  # nopep8
         self.cooldowns = cooldowns
         return None
 
-    def find_cooldown(self, enemy_name: str, summoner_spell_name: str) -> NewCooldown:
+    def find_cooldown(self, enemy_name: str, summoner_spell_name: str) -> CooldownData:
         for cooldown in self.cooldowns:
             if enemy_name in cooldown['champion_name'] and summoner_spell_name in cooldown['spell_name']:
                 return cooldown
         assert False, f'{enemy_name}{summoner_spell_name} not found in cooldowns!'  # nopep8
 
-    def find_enemy_summoner_spell(self, enemy: dict, summoner_spell_name: str) -> dict:
-        for _, summoner_spell in enemy['summonerSpells'].items():
+    def find_enemy_summoner_spell(self, enemy: EnemyData, summoner_spell_name: str) -> dict | SummonerSpellData:
+        for summoner_spell in enemy['summoner_spells']:
             if summoner_spell_name in summoner_spell['name']:
-                return summoner_spell
+                return dict(summoner_spell)
         return {}
 
-    def find_widget(self, enemy_name: str, summoner_spell_name: str, row_widgets_container):
+    def find_widget(self, enemy_name: str, summoner_spell_name: str, row_widgets_container: list[RowWidgets]) -> object:
         for row_widget in row_widgets_container:
-            if enemy_name in row_widget['championName']:
-                if summoner_spell_name in row_widget['summonerSpell1Image'].cget('text'):
-                    return row_widget['summonerSpell1Cooldown']
-                if summoner_spell_name in row_widget['summonerSpell2Image'].cget('text'):
-                    return row_widget['summonerSpell2Cooldown']
+            if enemy_name in row_widget['champion_name']:
+                if summoner_spell_name in row_widget['summoner_spell_one_image'].cget('text'):
+                    return row_widget['summoner_spell_one_cooldown']
+                if summoner_spell_name in row_widget['summoner_spell_two_image'].cget('text'):
+                    return row_widget['summoner_spell_two_cooldown']
         assert False, f'No matching widget found for {
             enemy_name}!{summoner_spell_name}!'
 
-    def trigger_cooldown(self, enemy: dict, summoner_spell_name: str):
+    def trigger_cooldown(self, enemy: EnemyData, summoner_spell_name: str):
         if not self.gtt.in_game:
             assert False, 'Not in game!'
         active_summoner_spell = self.find_cooldown(
-            enemy['championName'], summoner_spell_name)
+            enemy['champion_name'], summoner_spell_name)
         # If on cooldown
         if active_summoner_spell['on_cooldown']:
             # Cancel cooldown
@@ -147,18 +147,20 @@ class CooldownTimer:
         self.update_cooldowns()
         return None
 
-    def reset_cooldown(self, cooldown: NewCooldown) -> None:
+    def reset_cooldown(self, cooldown: CooldownData) -> None:
         cooldown['on_cooldown'] = False
         cooldown['start_time'] = 0
         cooldown['starting_cooldown'] = 0
         cooldown['remaining_time'] = 0
 
-    def start_cooldown(self, enemy: dict, summoner_spell_name: str, active_summoner_spell: NewCooldown) -> None:
+    def start_cooldown(self, enemy: EnemyData, summoner_spell_name: str, active_summoner_spell: CooldownData) -> None:
         enemy_summoner_spell = self.find_enemy_summoner_spell(
             enemy, summoner_spell_name)
+        if not enemy_summoner_spell:
+            assert False, 'Could not find enemy summoner spell!'
         active_summoner_spell['on_cooldown'] = True
         active_summoner_spell['start_time'] = self.gtt.game_time
-        active_summoner_spell['starting_cooldown'] = enemy_summoner_spell['startingCooldown'] - self.rush
+        active_summoner_spell['starting_cooldown'] = enemy_summoner_spell['starting_cooldown'] - self.rush
         return None
 
     def track_cooldowns(self) -> None:
@@ -180,7 +182,7 @@ class CooldownTimer:
             self.update_widget(cooldown)
         return None
 
-    def update_widget(self, cooldown: NewCooldown) -> None:
+    def update_widget(self, cooldown: CooldownData) -> None:
         if cooldown['on_cooldown']:
             cooldown['widget'].configure(
                 text=str(int(cooldown['remaining_time'])))
@@ -189,7 +191,7 @@ class CooldownTimer:
         else:
             cooldown['widget'].configure(text='Ready', foreground='green')
 
-    def new_game(self, enemy_list: list[dict], row_widgets_container: list) -> None:
+    def new_game(self, enemy_list: list[EnemyData], row_widgets_container: list) -> None:
         self.new_cooldowns(enemy_list, row_widgets_container)
         self.update_cooldowns()
 
