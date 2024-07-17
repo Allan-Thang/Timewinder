@@ -1,11 +1,11 @@
 import sys
 import tkinter as tk
 from io import BytesIO
-from time import sleep
 from tkinter import ttk
 
 from PIL import Image, ImageTk
 
+from dict_types import EnemyData, RowWidgets
 from game_time_tracker import GameTimeTracker
 
 
@@ -54,7 +54,7 @@ class App():
         self.refresh_button = ttk.Button(row0, text='Refresh')
         self.refresh_button.pack(fill='both', expand=True)
 
-        self.row_widgets_container: list[dict] = []
+        self.row_widgets_container: list[RowWidgets] = []
         self.row_widgets_container.append(
             self.create_champ_row_layout(row1))
         self.row_widgets_container.append(
@@ -71,82 +71,84 @@ class App():
     def refresh(self):
         print('refresh')
 
-    def create_champ_row_layout(self, row: tk.Frame) -> dict:
-        widgets = {}
-
-        widgets['row'] = row
-
+    def create_champ_row_layout(self, row: tk.Frame) -> RowWidgets:
         champ_image = ttk.Label(row, text='ChampImage')
         champ_image.place(relx=0, rely=0, relwidth=0.4,
                           relheight=1, anchor='nw')
-        widgets['championImage'] = champ_image
 
         # champ_name = ttk.Label(row, text='ChampName')
         champ_name = ''
-        widgets['championName'] = champ_name
 
-        summ_1_image = tk.Button(row, text='Summ1Image')
-        summ_1_image.place(relx=0.4, y=0, relwidth=0.2,
-                           relheight=0.5, anchor='nw')
-        widgets['summonerSpell1Image'] = summ_1_image
+        summoner_1_image = tk.Button(row, text='Summ1Image')
+        summoner_1_image.place(relx=0.4, y=0, relwidth=0.2,
+                               relheight=0.5, anchor='nw')
 
         summoner_1_cooldown = ttk.Label(row, text='Ready', foreground='green')
         summoner_1_cooldown.place(
             relx=0.6, rely=0, relwidth=0.3, relheight=0.5, anchor='nw')
-        widgets['summonerSpell1Cooldown'] = summoner_1_cooldown
 
-        summ_2_image = tk.Button(row, text='Summ2Image')
-        summ_2_image.place(relx=0.4, rely=0.5, relwidth=0.2,
-                           relheight=0.5, anchor='nw')
-        widgets['summonerSpell2Image'] = summ_2_image
+        summoner_2_image = tk.Button(row, text='Summ2Image')
+        summoner_2_image.place(relx=0.4, rely=0.5, relwidth=0.2,
+                               relheight=0.5, anchor='nw')
 
-        summ_2_cooldown = ttk.Label(row, text='Ready', foreground='green')
-        summ_2_cooldown.place(relx=0.6, rely=0.5,
-                              relwidth=0.3, relheight=0.5, anchor='nw')
-        widgets['summonerSpell2Cooldown'] = summ_2_cooldown
+        summoner_2_cooldown = ttk.Label(row, text='Ready', foreground='green')
+        summoner_2_cooldown.place(relx=0.6, rely=0.5,
+                                  relwidth=0.3, relheight=0.5, anchor='nw')
 
         move_row_up_button = ttk.Button(row, text='^')
         move_row_up_button.place(
             relx=0.9, rely=0, relwidth=0.1, relheight=0.5, anchor='nw')
-        widgets['moveRowUpButton'] = move_row_up_button
 
         move_row_down_button = ttk.Button(row, text='v')
         move_row_down_button.place(
             relx=0.9, rely=0.5, relwidth=0.1, relheight=0.5, anchor='nw')
-        widgets['moveRowDownButton'] = move_row_down_button
 
+        widgets = RowWidgets(row=row,
+                             champion_image=champ_image,
+                             champion_name=champ_name,
+                             summoner_spell_one_image=summoner_1_image,
+                             summoner_spell_one_cooldown=summoner_1_cooldown,
+                             summoner_spell_two_image=summoner_2_image,
+                             summoner_spell_two_cooldown=summoner_2_cooldown,
+                             move_row_up_button=move_row_up_button,
+                             move_row_down_button=move_row_down_button)
         return widgets
 
-    def configure_row_widgets(self, row_widgets, enemy, main_obj) -> None:
+    def configure_row_widgets(self, row_widgets: RowWidgets, enemy: EnemyData, main_obj) -> None:
         # Champ Image
+        # TODO: Wait for image to download
         self.configure_champion_image(
-            row_widgets['championImage'], enemy['championIcon'])
+            row_widgets['champion_image'], enemy['champion_icon'])
         # Champ Name
         # self.configure_text(row_widgets['championName'], enemy['championName'])
-        row_widgets['championName'] = enemy['championName']
+        row_widgets['champion_name'] = enemy['champion_name']
         # Summoner 1 Image
-        self.configure_text(row_widgets['summonerSpell1Image'],
-                            enemy['summonerSpells']['summonerSpellOne']['name'])
-        self.configure_summoner_image(row_widgets['summonerSpell1Image'],
-                                      enemy['summonerSpells']['summonerSpellOne']['icon'])
+        self.configure_text(row_widgets['summoner_spell_one_image'],
+                            enemy['summoner_spells'][0]['name'])
+        # TODO: Wait for image to download
+        self.configure_summoner_image(row_widgets['summoner_spell_one_image'],
+                                      enemy['summoner_spells'][0]['icon'])
+        self.configure_button(row_widgets['summoner_spell_one_image'], lambda: main_obj.update_and_start_cooldown(
+            enemy, enemy['summoner_spells'][0]['name']))
         # Summoner 1 Cooldown
-        self.configure_text(row_widgets['summonerSpell1Cooldown'], 'Ready')
-        self.configure_button(row_widgets['summonerSpell1Image'], lambda: main_obj.update_and_start_cooldown(
-            enemy, enemy['summonerSpells']['summonerSpellOne']['name']))
+        self.configure_text(
+            row_widgets['summoner_spell_one_cooldown'], 'Ready')
         # Summoner 2 Image
-        self.configure_text(row_widgets['summonerSpell2Image'],
-                            enemy['summonerSpells']['summonerSpellTwo']['name'])
-        self.configure_summoner_image(row_widgets['summonerSpell2Image'],
-                                      enemy['summonerSpells']['summonerSpellTwo']['icon'])
+        self.configure_text(row_widgets['summoner_spell_two_image'],
+                            enemy['summoner_spells'][1]['name'])
+        # TODO: Wait for image to download
+        self.configure_summoner_image(row_widgets['summoner_spell_two_image'],
+                                      enemy['summoner_spells'][1]['icon'])
+        self.configure_button(row_widgets['summoner_spell_two_image'], lambda: main_obj.update_and_start_cooldown(
+            enemy, enemy['summoner_spells'][1]['name']))
         # Summoner 2 Cooldown
-        self.configure_text(row_widgets['summonerSpell2Cooldown'], 'Ready')
-        self.configure_button(row_widgets['summonerSpell2Image'], lambda: main_obj.update_and_start_cooldown(
-            enemy, enemy['summonerSpells']['summonerSpellTwo']['name']))
+        self.configure_text(
+            row_widgets['summoner_spell_two_cooldown'], 'Ready')
         # Move Row Up Button
-        self.configure_button(row_widgets['moveRowUpButton'],
+        self.configure_button(row_widgets['move_row_up_button'],
                               lambda: self.move_row_up(row_widgets))
         # Move Row Down Button
-        self.configure_button(row_widgets['moveRowDownButton'],
+        self.configure_button(row_widgets['move_row_down_button'],
                               lambda: self.move_row_down(row_widgets))
         return
 

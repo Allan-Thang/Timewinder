@@ -1,8 +1,8 @@
 import sys
-from time import sleep
 
 from app import App
 from cooldown_timer import CooldownTimer
+from dict_types import EnemyData
 from game_time_tracker import GameTimeTracker
 from summoner_spell_tracker_v2 import SpellTracker
 
@@ -38,7 +38,7 @@ class Timewinder():
             self.spell_tracker.enemy_list, self.app.row_widgets_container)
         self.gtt.in_game = True
 
-    def update_and_start_cooldown(self, enemy: dict, spell_used: str):
+    def update_and_start_cooldown(self, enemy: EnemyData, spell_used: str):
         self.spell_tracker.calculate_enemy_summoner_cooldowns(enemy)
         # self.cooldown_timer.start_cooldown(
         #     enemy, spell_used, cooldown_text_widget)
@@ -53,7 +53,7 @@ class Timewinder():
     def quit(self):
         self.gtt.quit()
         # self.cooldown_timer.quit()
-        sleep(1)
+        # sleep(1)
         # self.app.root.quit()
         sys.exit()
 
