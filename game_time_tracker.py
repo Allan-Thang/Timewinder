@@ -27,9 +27,6 @@ class GameTimeTracker:
             self._lcu = LCU()
         #! END TESTING
 
-    # def add_game_time_difference_observer_callback(self, observer):
-    #     self._game_timer_difference_observers.append(observer)
-
     def add_game_time_observer_callback(self, observer):
         self._game_time_observers.append(observer)
 
@@ -64,7 +61,7 @@ class GameTimeTracker:
         self._in_game = value
         if value:
             self._out_of_game.clear()
-            self.update_game_time(disable_sync=True)
+            self.sync_game_time()
             self.future = self._pool.submit(self.start_tracking)
         else:
             self._out_of_game.set()
@@ -73,41 +70,29 @@ class GameTimeTracker:
         for observer in self._in_game_observers:
             observer(value)
 
-    def update_game_time(self, disable_sync: bool = False):
+    def sync_game_time(self):
         try:
             game_stats = self._lcu.get_game_stats()
         except ConnectionError as err:
             print(err)
             print('Potentially not in game')
             self.in_game = False
-            # Do something
         else:
             new_time = game_stats['gameTime']
-            if disable_sync:
-                self.game_time = new_time
-            else:
-                self.sync_game_time(new_time)
+            self.game_time = new_time
 
     def start_tracking(self):
-        while not self._out_of_game.is_set():
-            if int(self.game_time) % 60 == 0:
-                self.update_game_time()
-            self._out_of_game.wait(1)
+        self._out_of_game.wait(1)
+        while self.in_game:
             self.game_time = self.game_time + 1
+            if int(self.game_time) % 60 == 0:
+                self.sync_game_time()
+            self._out_of_game.wait(1)
         return None
 
-    def sync_game_time(self, new_time):
-        # difference = new_time - self.game_time
-        # if abs(difference) >= 2:
-        self.game_time = new_time
-        # for observer in self._game_timer_difference_observers:
-        #     observer(difference)
-
     def quit(self):
-        sleep(3)
-        self.future.result()
         self.in_game = False
-        self._pool.shutdown(wait=False, cancel_futures=True)
+        self._pool.shutdown(wait=True, cancel_futures=True)
 
 
 if __name__ == '__main__':

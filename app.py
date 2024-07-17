@@ -8,11 +8,6 @@ from PIL import Image, ImageTk
 
 from game_time_tracker import GameTimeTracker
 
-#! When the main thread is paused/sleeping, tk window cannot be configured. So we have to do it in the main thread
-# TODO: Change widget updating to be done in the main thread. GL
-# ? Observer pattern happens on the thread that calls the observer.
-# ? Check out root.after()
-
 
 class App():
     def __init__(self, gtt: GameTimeTracker):
@@ -232,8 +227,7 @@ class App():
 
     def on_close(self):
         self.gtt.quit()
-        sleep(1)
-        self.root.quit()
+        self.root.destroy()
         sys.exit()
 
 

@@ -8,7 +8,7 @@ from summoner_spell_tracker_v2 import SpellTracker
 
 #! pyinstaller --name Timewinder --onefile --windowed --icon=icon.icon main.py
 
-# TODO: Optimization of startup, Fix exit thread bug
+# TODO: Optimization of startup
 
 
 class Timewinder():
