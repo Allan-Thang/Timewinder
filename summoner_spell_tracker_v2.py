@@ -132,6 +132,8 @@ class SpellTracker:
             spell_name = str(summoner_spell['displayName'])
             if 'Teleport' in spell_name:
                 spell_name: str = 'Teleport'
+            if 'Smite' in spell_name:
+                spell_name: str = 'Smite'
 
             # summoner_spell['name'] = spell_name
 
@@ -298,7 +300,7 @@ class SpellTracker:
         self.my_tag_line = getenv('GAME_TAG')
         self.riot_id = f'{self.my_summoner_name}#{self.my_tag_line}'
         self.summoner_haste_sources = {
-            "Ionian Boots of Lucidity": 12,
+            "Ionian Boots of Lucidity": 10,
             "Dawncore": 0,
             "Cosmic Insight": 18,
             "ARAM": 70,
@@ -329,10 +331,10 @@ class SpellTracker:
         #! TESTING
         if self.testing:
             active_game = FakePFGame().game
+            self.lcu = FakeLCU(self.alt_lcu)
         else:
             active_game = asyncio.run(
                 self.pulsefire_client.fetch_active_game(self.summoner))
-        self.lcu = FakeLCU(self.alt_lcu)
         #! END TESTING
 
         player_list = self.get_player_list()

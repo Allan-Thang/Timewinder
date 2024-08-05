@@ -175,6 +175,7 @@ class CooldownTimer:
                 cooldown['remaining_time'] = cooldown['starting_cooldown'] - \
                     self.gtt.game_time + cooldown['start_time']
                 if cooldown['remaining_time'] > cooldown['starting_cooldown']:
+                    print(f'{cooldown['champion_name']}!{cooldown['spell_name']}\'s remaining time of {cooldown["remaining_time"]} is more than starting cooldown, setting remaining time to starting cooldown {cooldown["starting_cooldown"]}')  # nopep8
                     cooldown['remaining_time'] = cooldown['starting_cooldown']
                     cooldown['start_time'] = self.gtt.game_time
                 if cooldown['remaining_time'] <= 0:

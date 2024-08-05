@@ -13,7 +13,7 @@ from summoner_spell_tracker_v2 import SpellTracker
 
 class Timewinder():
     def __init__(self) -> None:
-        self.testing = True
+        self.testing = False
         self.gtt = GameTimeTracker(self.testing)
         self.spell_tracker: SpellTracker = SpellTracker(self.gtt, self.testing)
         self.cooldown_timer: CooldownTimer = CooldownTimer(self.gtt)
@@ -39,6 +39,8 @@ class Timewinder():
         self.gtt.in_game = True
 
     def update_and_start_cooldown(self, enemy: EnemyData, spell_used: str):
+        if not self.gtt.in_game:
+            return
         self.spell_tracker.calculate_enemy_summoner_cooldowns(enemy)
         # self.cooldown_timer.start_cooldown(
         #     enemy, spell_used, cooldown_text_widget)

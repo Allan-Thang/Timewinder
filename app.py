@@ -66,7 +66,14 @@ class App():
         self.row_widgets_container.append(
             self.create_champ_row_layout(row5))
 
+        # btn = tk.Button(self.mainframe, text='Close')
+        # btn.pack()
+        # btn.bind('<Button>', lambda event, a=1, b=2: self.test(event, a, b))
+
         return
+
+    # def test(self, event, a, b):
+    #     print(type(event.num), a, b)
 
     def refresh(self):
         print('refresh')

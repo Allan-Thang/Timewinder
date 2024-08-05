@@ -41,15 +41,14 @@ class GameTimeTracker:
 
     @game_time.setter
     def game_time(self, value):
+        print(value)
         self._game_time = value
+        if int(self.game_time) >= 600 and not self._ten_min_flag.is_set():
+            for observer in self._ten_min_observers:
+                observer()
+            self._ten_min_flag.set()
         for observer in self._game_time_observers:
             observer(self.game_time)
-        if self._ten_min_flag.is_set():
-            return
-        if int(self.game_time) >= 600:
-            for observer in self._ten_min_observers:
-                observer(self.game_time)
-            self._ten_min_flag.set()
 
     @property
     def in_game(self):
