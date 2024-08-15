@@ -1,23 +1,32 @@
 import sys
+from concurrent.futures import ThreadPoolExecutor
 
 from app import App
 from cooldown_timer import CooldownTimer
-from dict_types import EnemyData
+from dict_types import EnemyData, SummonerSpellData
 from game_time_tracker import GameTimeTracker
+from pulsefire_client import PulsefireClient
 from summoner_spell_tracker_v2 import SpellTracker
 
 #! pyinstaller --name Timewinder --onefile --windowed --icon=icon.icon main.py
 
 # TODO: Optimization of startup
 
+# TODO: root.after, pfclient.fetch champ icon and ss icon. set enemy, configure images
+# ? Needs app.root, pulsefire_client (no authkey), spell_tracker.enemy_list
+
 
 class Timewinder():
     def __init__(self) -> None:
-        self.testing = False
+        self.testing = True
         self.gtt = GameTimeTracker(self.testing)
-        self.spell_tracker: SpellTracker = SpellTracker(self.gtt, self.testing)
+        self.pulsefire_client = PulsefireClient()
+        self.spell_tracker: SpellTracker = SpellTracker(
+            self.gtt, self.pulsefire_client, self.testing)
         self.cooldown_timer: CooldownTimer = CooldownTimer(self.gtt)
         self.app: App = App(self.gtt)
+        self.champion_icons: dict[str, bytes] = {}
+        self.summoner_spell_icons: dict[str, bytes] = {}
 
     def main(self) -> None:
         self.refresh()
@@ -28,12 +37,14 @@ class Timewinder():
         # self.quit()
 
     def refresh(self):
-        self.gtt.in_game = False
+        self.gtt.in_game = True
         self.spell_tracker.refresh()
         self.spell_tracker.main()
+        self.fetch_icons(self.spell_tracker.enemy_list)
         for i, enemy in enumerate(self.spell_tracker.enemy_list):
             self.app.configure_row_widgets(
                 self.app.row_widgets_container[i], enemy, self)
+        self.app.root.after(1000, self.app.update_icons)
         self.cooldown_timer.new_game(
             self.spell_tracker.enemy_list, self.app.row_widgets_container)
         self.gtt.in_game = True
@@ -58,6 +69,38 @@ class Timewinder():
         # sleep(1)
         # self.app.root.quit()
         sys.exit()
+
+    def fetch_icons(self, enemy_list: list[EnemyData]):
+        # TODO: Fix this. Call all fetch, then update app icons
+        pool = ThreadPoolExecutor()
+        for enemy in enemy_list:
+            pool.submit(self.fetch_champion_icon, enemy)
+
+            for summoner_spell in enemy['summoner_spells']:
+                pool.submit(self.fetch_summoner_spell_icon, summoner_spell)
+        pool.shutdown(wait=False, cancel_futures=False)
+        return None
+
+    def fetch_champion_icon(self, enemy: EnemyData) -> None:
+        champion_name = enemy['champion_name']
+        if champion_name in self.champion_icons:
+            enemy['champion_icon'] = self.champion_icons[champion_name]
+            return None
+        icon = self.pulsefire_client.fetch_champ_icon(champion_name)
+        self.champion_icons[champion_name] = icon
+        enemy['champion_icon'] = icon
+        return None
+
+    def fetch_summoner_spell_icon(self, summoner_spell: SummonerSpellData) -> None:
+        summoner_spell_name = summoner_spell['name']
+        if summoner_spell_name in self.summoner_spell_icons:
+            summoner_spell['icon'] = self.summoner_spell_icons[summoner_spell_name]
+            return None
+        icon = self.pulsefire_client.fetch_summoner_spell_icon(
+            summoner_spell_name)
+        self.summoner_spell_icons[summoner_spell_name] = icon
+        summoner_spell['icon'] = icon
+        return None
 
 
 def main():

@@ -13,6 +13,8 @@ class PulsefireClient():
 
     def __init__(self):
         load_dotenv()
+        self.champion_summary = []
+        self.summoner_spells = []
     # self.riot_dev_key = riot_dev_key
     # summoner = asyncio.run(fetch_summoner(riot_dev_key))
     # active_game = asyncio.run(fetch_active_game(riot_dev_key, summoner))
@@ -53,8 +55,9 @@ class PulsefireClient():
         return champion_summary
 
     def fetch_champ_icon(self, champ_name: str) -> bytes:
-        champion_summary = asyncio.run(self.fetch_champion_data())
-        for champion in champion_summary:
+        if not self.champion_summary:
+            self.champion_summary = asyncio.run(self.fetch_champion_data())
+        for champion in self.champion_summary:
             if champ_name in champion['name']:
                 champ_id = champion['id']
                 base_url = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/'
@@ -69,8 +72,9 @@ class PulsefireClient():
         return summoner_spells
 
     def fetch_summoner_spell_icon(self, summoner_spell_name: str) -> bytes:
-        summoner_spells = asyncio.run(self.fetch_summoner_spells())
-        for summoner_spell in summoner_spells:
+        if not self.summoner_spells:
+            self.summoner_spells = asyncio.run(self.fetch_summoner_spells())
+        for summoner_spell in self.summoner_spells:
             if summoner_spell_name in summoner_spell['name']:
                 file_name = summoner_spell['iconPath'].split('/')[-1].lower()
                 base_url = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/data/spells/icons2d/'

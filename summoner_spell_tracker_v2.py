@@ -122,8 +122,8 @@ class SpellTracker:
 
         # TODO: Move to a thread
         champion_icon: bytes = bytes(b'')
-        champion_icon: bytes = self.pulsefire_client.fetch_champ_icon(
-            champion_name)
+        # champion_icon: bytes = self.pulsefire_client.fetch_champ_icon(
+        #     champion_name)
 
         summoner_spells: list[SummonerSpellData] = []
         enemy_summoner_spells_copy = dict(
@@ -139,7 +139,7 @@ class SpellTracker:
 
             # TODO: Move to a thread
             summoner_spell_icon = b''
-            summoner_spell_icon = self.fetch_summoner_spell_icon(spell_name)
+            # summoner_spell_icon = self.fetch_summoner_spell_icon(spell_name)
 
             summoner_spells.append(SummonerSpellData(name=spell_name,
                                                      base_cooldown=0,
@@ -291,7 +291,7 @@ class SpellTracker:
             enemy_items.append(item['displayName'])
         enemy['items'] = enemy_items
 
-    def __init__(self, gtt: GameTimeTracker, testing: bool = False):
+    def __init__(self, gtt: GameTimeTracker, pulsefire_client: PulsefireClient, testing: bool = False):
         load_dotenv()
         self.gtt = gtt
         self.testing = testing
@@ -305,7 +305,7 @@ class SpellTracker:
             "Cosmic Insight": 18,
             "ARAM": 70,
         }
-        self.pulsefire_client = PulsefireClient()
+        self.pulsefire_client = pulsefire_client
         #! TESTING
         if testing:
             self.alt_lcu = False
@@ -369,7 +369,7 @@ class SpellTracker:
 
 
 def main():
-    spell_tracker = SpellTracker(GameTimeTracker())
+    spell_tracker = SpellTracker(GameTimeTracker(), PulsefireClient())
     spell_tracker.main()
     for enemy in spell_tracker.enemy_list:
         spell_tracker.calculate_enemy_summoner_cooldowns(enemy)

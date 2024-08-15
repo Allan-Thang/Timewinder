@@ -3,7 +3,7 @@ import tkinter as tk
 from io import BytesIO
 from tkinter import ttk
 
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, UnidentifiedImageError
 
 from dict_types import EnemyData, RowWidgets
 from game_time_tracker import GameTimeTracker
@@ -110,6 +110,8 @@ class App():
         move_row_down_button.place(
             relx=0.9, rely=0.5, relwidth=0.1, relheight=0.5, anchor='nw')
 
+        enemy = None
+
         widgets = RowWidgets(row=row,
                              champion_image=champ_image,
                              champion_name=champ_name,
@@ -118,23 +120,27 @@ class App():
                              summoner_spell_two_image=summoner_2_image,
                              summoner_spell_two_cooldown=summoner_2_cooldown,
                              move_row_up_button=move_row_up_button,
-                             move_row_down_button=move_row_down_button)
+                             move_row_down_button=move_row_down_button,
+                             enemy=enemy)
         return widgets
 
     def configure_row_widgets(self, row_widgets: RowWidgets, enemy: EnemyData, main_obj) -> None:
-        # Champ Image
-        # TODO: Wait for image to download
-        self.configure_champion_image(
-            row_widgets['champion_image'], enemy['champion_icon'])
         # Champ Name
         # self.configure_text(row_widgets['championName'], enemy['championName'])
         row_widgets['champion_name'] = enemy['champion_name']
+        # Champ Image
+        # TODO: Wait for image to download
+        # self.configure_champion_image(
+        #     row_widgets['champion_image'], enemy['champion_icon'])
+        row_widgets['champion_image'].configure(
+            image='', text=row_widgets['champion_name'])
         # Summoner 1 Image
         self.configure_text(row_widgets['summoner_spell_one_image'],
                             enemy['summoner_spells'][0]['name'])
         # TODO: Wait for image to download
-        self.configure_summoner_image(row_widgets['summoner_spell_one_image'],
-                                      enemy['summoner_spells'][0]['icon'])
+        # self.configure_summoner_image(row_widgets['summoner_spell_one_image'],
+        #                               enemy['summoner_spells'][0]['icon'])
+        row_widgets['summoner_spell_one_image'].configure(image='')
         self.configure_button(row_widgets['summoner_spell_one_image'], lambda: main_obj.update_and_start_cooldown(
             enemy, enemy['summoner_spells'][0]['name']))
         # Summoner 1 Cooldown
@@ -144,8 +150,9 @@ class App():
         self.configure_text(row_widgets['summoner_spell_two_image'],
                             enemy['summoner_spells'][1]['name'])
         # TODO: Wait for image to download
-        self.configure_summoner_image(row_widgets['summoner_spell_two_image'],
-                                      enemy['summoner_spells'][1]['icon'])
+        # self.configure_summoner_image(row_widgets['summoner_spell_two_image'],
+        #                               enemy['summoner_spells'][1]['icon'])
+        row_widgets['summoner_spell_two_image'].configure(image='')
         self.configure_button(row_widgets['summoner_spell_two_image'], lambda: main_obj.update_and_start_cooldown(
             enemy, enemy['summoner_spells'][1]['name']))
         # Summoner 2 Cooldown
@@ -157,7 +164,33 @@ class App():
         # Move Row Down Button
         self.configure_button(row_widgets['move_row_down_button'],
                               lambda: self.move_row_down(row_widgets))
+        row_widgets['enemy'] = enemy
         return
+
+    def update_icons(self) -> None:
+        need_to_update = False
+        for row_widgets in self.row_widgets_container:
+            if row_widgets['enemy'] is None:
+                assert False, 'Row has no enemy'
+            if row_widgets['champion_image'].cget('image') == '':
+                need_to_update = True
+                break
+        if not need_to_update:
+            return
+        for row_widgets in self.row_widgets_container:
+            try:
+                self.configure_champion_image(
+                    row_widgets['champion_image'], image=row_widgets['enemy']['champion_icon'])  # type: ignore # nopep8
+                self.configure_summoner_image(
+                    row_widgets['summoner_spell_one_image'], image=row_widgets['enemy']['summoner_spells'][0]['icon'])  # type: ignore # nopep8
+                self.configure_summoner_image(
+                    row_widgets['summoner_spell_two_image'], image=row_widgets['enemy']['summoner_spells'][1]['icon'])  # type: ignore # nopep8
+            except UnidentifiedImageError as e:
+                print(f'Image for {row_widgets['champion_name']}!{
+                      row_widgets['summoner_spell_one_image'].cget('text')} hasn\'t downloaded yet: {e}')
+                self.root.after(500, self.update_icons)
+                return None
+        return None
 
     def configure_champion_image(self, widget, image):
         self._configure_image(widget, image, champion=True)

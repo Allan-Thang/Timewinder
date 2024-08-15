@@ -1,7 +1,7 @@
 import tkinter as tk
 from threading import Event
 from tkinter import ttk
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 
 class SummonerSpellData(TypedDict):
@@ -42,3 +42,4 @@ class RowWidgets(TypedDict):
     summoner_spell_two_cooldown: ttk.Label
     move_row_up_button: ttk.Button
     move_row_down_button: ttk.Button
+    enemy: EnemyData | None
