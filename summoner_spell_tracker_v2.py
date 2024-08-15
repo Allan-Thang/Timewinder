@@ -203,6 +203,8 @@ class SpellTracker:
                 if enemy_summoner_spell['name'] not in summoner_spell:
                     continue
                 enemy_summoner_spell['base_cooldown'] = cooldown
+                if enemy_summoner_spell['name'] in 'Smite':
+                    enemy_summoner_spell['base_cooldown'] = self.smite_recharge_cooldown
                 break
         return None
 
@@ -263,6 +265,7 @@ class SpellTracker:
             "Cosmic Insight": 18,
             "ARAM": 70,
         }
+        self.smite_recharge_cooldown = 90
         self.pulsefire_client = pulsefire_client
         #! TESTING
         if testing:

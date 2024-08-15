@@ -337,7 +337,7 @@ class FakeLCU:
                                 "rawDisplayName": "GeneratedTip_SummonerSpell_SummonerHaste_DisplayName"
                             },
                             "summonerSpellTwo": {
-                                "displayName": "Heal",
+                                "displayName": "Smite",
                                 "rawDescription": "GeneratedTip_SummonerSpell_SummonerHeal_Description",
                                 "rawDisplayName": "GeneratedTip_SummonerSpell_SummonerHeal_DisplayName"
                             }
