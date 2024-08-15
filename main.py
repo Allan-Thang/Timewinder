@@ -10,10 +10,7 @@ from summoner_spell_tracker_v2 import SpellTracker
 
 #! pyinstaller --name Timewinder --onefile --windowed --icon=icon.icon main.py
 
-# TODO: Optimization of startup
-
-# TODO: root.after, pfclient.fetch champ icon and ss icon. set enemy, configure images
-# ? Needs app.root, pulsefire_client (no authkey), spell_tracker.enemy_list
+# TODO: Add right click event to shorten cooldown, Consider cacheing icons for faster startup, Consider adding regular spell tracking
 
 
 class Timewinder():
@@ -71,7 +68,6 @@ class Timewinder():
         sys.exit()
 
     def fetch_icons(self, enemy_list: list[EnemyData]):
-        # TODO: Fix this. Call all fetch, then update app icons
         pool = ThreadPoolExecutor()
         for enemy in enemy_list:
             pool.submit(self.fetch_champion_icon, enemy)

@@ -42,22 +42,12 @@ class SpellTracker:
                 inspiration_tree_index = i
                 break
 
-        # // for i in range(len(dd_rune_ids)):
-        # //     if 'Inspiration' in dd_rune_ids[i]['key']:
-        # //        inspiration_tree_index = i
-        # //         break
-
         inspiration_slots = dd_rune_ids[inspiration_tree_index]['slots']
 
         for row, _ in enumerate(inspiration_slots):
             for rune, rune_data in enumerate(inspiration_slots[row]['runes']):
                 if CI_key in rune_data['key']:
                     return inspiration_slots[row]['runes'][rune]['id']
-
-        # // for row in range(len(inspiration_slots)):
-        # //     for rune in range(len(inspiration_slots[row]['runes'])):
-        # //         if CI_key in inspiration_slots[row]['runes'][rune]['key']:
-        # //             return inspiration_slots[row]['runes'][rune]['id']
 
     def get_player_list(self):
         player_list = self.lcu.get_all_players()
@@ -120,10 +110,7 @@ class SpellTracker:
         level: int = int(enemy['level'])
         items: list[str] = []
 
-        # TODO: Move to a thread
         champion_icon: bytes = bytes(b'')
-        # champion_icon: bytes = self.pulsefire_client.fetch_champ_icon(
-        #     champion_name)
 
         summoner_spells: list[SummonerSpellData] = []
         enemy_summoner_spells_copy = dict(
@@ -135,11 +122,7 @@ class SpellTracker:
             if 'Smite' in spell_name:
                 spell_name: str = 'Smite'
 
-            # summoner_spell['name'] = spell_name
-
-            # TODO: Move to a thread
             summoner_spell_icon = b''
-            # summoner_spell_icon = self.fetch_summoner_spell_icon(spell_name)
 
             summoner_spells.append(SummonerSpellData(name=spell_name,
                                                      base_cooldown=0,
@@ -174,40 +157,15 @@ class SpellTracker:
             new_enemy_list.append(self.get_relevent_enemy_data(enemy))
         return new_enemy_list
 
-    # // def get_enemies_with_inspiration(self, enemy_list):
-    # //     enemies_with_inspiration = []
-    # //     for enemy in enemy_list:
-    # //         if enemy['summonerHasteSources']['Inspiration']:
-    # //             enemies_with_inspiration.append(enemy)
-    # //     return enemies_with_inspiration
-
-    # // def check_for_Cosmic_Insight(self, enemies_with_inspiration, active_game):
-    # //     checklist = []
-    # //     for enemy in enemies_with_inspiration:
-    # //         for participant in active_game['participants']:
-    # //             if participant['summonerName'] in enemy['summonerName']:
-    # //                 if self.cosmic_insight_ID in participant['perks']['perkIDs']:
-    # //                     checklist.append(True)
-    # //                 else:
-    # //                     checklist.append(False)
-    # //     return checklist
-
-    # // def update_enemies_with_cosmic_insight(self, enemies_with_inspiration, enemies_with_Cosmic_Insight_checklist):
-    # //     for i in range(len(enemies_with_inspiration)):
-    # //         enemies_with_inspiration[i]['summonerHasteSources']['Cosmic Insight'] = enemies_with_Cosmic_Insight_checklist[i]
-
     def check_for_cosmic_insight(self, enemy: EnemyData, active_game) -> bool:
         for participant in active_game['participants']:
             if enemy['riot_id'] not in participant['riotId']:
                 continue
             if not enemy['summoner_haste_sources']['Inspiration']:
                 return False
-                # // enemy['summonerHasteSources']['Cosmic Insight'] = False
             if self.cosmic_insight_id not in participant['perks']['perkIds']:
                 return False
-                # // enemy['summonerHasteSources']['Cosmic Insight'] = False
             return True
-            # // enemy['summonerHasteSources']['Cosmic Insight'] = True
         assert False, 'Unreachable code reached'
 
     def find_unique_summoner_spells(self) -> list[str]:
@@ -344,10 +302,6 @@ class SpellTracker:
         fetched_enemy_list = self.new_enemy_list(my_team, player_list)
         self.enemy_list = self.simplify_enemy_list(fetched_enemy_list)
 
-        # // enemies_with_inspiration = self.get_enemies_with_inspiration(self.enemy_list)
-        # // enemies_with_Cosmic_Insight_checklist = self.check_for_Cosmic_Insight(enemies_with_inspiration, active_game)
-        # // self.update_enemies_with_cosmic_insight(enemies_with_inspiration, enemies_with_Cosmic_Insight_checklist)
-
         for enemy in self.enemy_list:
             enemy['summoner_haste_sources']['Cosmic Insight'] = self.check_for_cosmic_insight(
                 enemy, active_game)
@@ -360,8 +314,6 @@ class SpellTracker:
 
         if self.testing:
             self.alt_lcu = True
-
-        # self.calculate_all_enemies_summoner_cooldowns()
 
     def refresh(self):
         self.game_mode = ''

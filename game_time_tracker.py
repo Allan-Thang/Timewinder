@@ -10,7 +10,6 @@ from lcu import LCU
 class GameTimeTracker:
     def __init__(self, testing: bool = False):
         self._game_time: float = -999
-        # self._game_timer_difference_observers = []
         self._game_time_observers = []
         self._in_game_observers = []
         self._ten_min_observers = []
@@ -95,7 +94,6 @@ class GameTimeTracker:
 
 if __name__ == '__main__':
     gtt = GameTimeTracker()
-    # gtt.add_game_time_difference_observer_callback(print)
     gtt.add_in_game_observer_callback(print)
     gtt.game_time = 20
     gtt.in_game = True

@@ -1,4 +1,3 @@
-# %% run_imports
 import asyncio
 import sys
 from os import getenv
@@ -14,7 +13,7 @@ class PulsefireClient():
     def __init__(self):
         load_dotenv()
         self.champion_summary = []
-        self.summoner_spells = []
+        self.summoner_spells_summary = []
     # self.riot_dev_key = riot_dev_key
     # summoner = asyncio.run(fetch_summoner(riot_dev_key))
     # active_game = asyncio.run(fetch_active_game(riot_dev_key, summoner))
@@ -48,7 +47,7 @@ class PulsefireClient():
                     sys.exit(f'{e}')
         return active_game
 
-    async def fetch_champion_data(self):
+    async def fetch_champion_summary(self):
         async with CDragonClient(default_params={"patch": "latest", "locale": "en_au"}) as client:
             champion_summary = await client.get_lol_v1_champion_summary()
 
@@ -56,7 +55,7 @@ class PulsefireClient():
 
     def fetch_champ_icon(self, champ_name: str) -> bytes:
         if not self.champion_summary:
-            self.champion_summary = asyncio.run(self.fetch_champion_data())
+            self.champion_summary = asyncio.run(self.fetch_champion_summary())
         for champion in self.champion_summary:
             if champ_name in champion['name']:
                 champ_id = champion['id']
@@ -72,9 +71,10 @@ class PulsefireClient():
         return summoner_spells
 
     def fetch_summoner_spell_icon(self, summoner_spell_name: str) -> bytes:
-        if not self.summoner_spells:
-            self.summoner_spells = asyncio.run(self.fetch_summoner_spells())
-        for summoner_spell in self.summoner_spells:
+        if not self.summoner_spells_summary:
+            self.summoner_spells_summary = asyncio.run(
+                self.fetch_summoner_spells())
+        for summoner_spell in self.summoner_spells_summary:
             if summoner_spell_name in summoner_spell['name']:
                 file_name = summoner_spell['iconPath'].split('/')[-1].lower()
                 base_url = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/data/spells/icons2d/'
@@ -82,9 +82,6 @@ class PulsefireClient():
                 icon = r.content
                 return icon
         assert False
-
-# asyncio.run(main())
-# await main()
 
 
 def main():
@@ -101,4 +98,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-# %%

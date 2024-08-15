@@ -83,7 +83,6 @@ class App():
         champ_image.place(relx=0, rely=0, relwidth=0.4,
                           relheight=1, anchor='nw')
 
-        # champ_name = ttk.Label(row, text='ChampName')
         champ_name = ''
 
         summoner_1_image = tk.Button(row, text='Summ1Image')
@@ -126,20 +125,13 @@ class App():
 
     def configure_row_widgets(self, row_widgets: RowWidgets, enemy: EnemyData, main_obj) -> None:
         # Champ Name
-        # self.configure_text(row_widgets['championName'], enemy['championName'])
         row_widgets['champion_name'] = enemy['champion_name']
         # Champ Image
-        # TODO: Wait for image to download
-        # self.configure_champion_image(
-        #     row_widgets['champion_image'], enemy['champion_icon'])
         row_widgets['champion_image'].configure(
             image='', text=row_widgets['champion_name'])
         # Summoner 1 Image
         self.configure_text(row_widgets['summoner_spell_one_image'],
                             enemy['summoner_spells'][0]['name'])
-        # TODO: Wait for image to download
-        # self.configure_summoner_image(row_widgets['summoner_spell_one_image'],
-        #                               enemy['summoner_spells'][0]['icon'])
         row_widgets['summoner_spell_one_image'].configure(image='')
         self.configure_button(row_widgets['summoner_spell_one_image'], lambda: main_obj.update_and_start_cooldown(
             enemy, enemy['summoner_spells'][0]['name']))
@@ -149,9 +141,6 @@ class App():
         # Summoner 2 Image
         self.configure_text(row_widgets['summoner_spell_two_image'],
                             enemy['summoner_spells'][1]['name'])
-        # TODO: Wait for image to download
-        # self.configure_summoner_image(row_widgets['summoner_spell_two_image'],
-        #                               enemy['summoner_spells'][1]['icon'])
         row_widgets['summoner_spell_two_image'].configure(image='')
         self.configure_button(row_widgets['summoner_spell_two_image'], lambda: main_obj.update_and_start_cooldown(
             enemy, enemy['summoner_spells'][1]['name']))
@@ -255,8 +244,6 @@ class App():
         return
 
     def swap_rows(self, row_number_1, row_number_2) -> None:
-        # row_1 = self.row_widgets_container[row_1_index]['row']
-        # row_2 = self.row_widgets_container[row_2_index]['row']
         row_1 = self.row_widgets_container[row_number_1-1]['row']
         row_2 = self.row_widgets_container[row_number_2-1]['row']
 
