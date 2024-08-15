@@ -10,7 +10,7 @@ from summoner_spell_tracker_v2 import SpellTracker
 
 #! pyinstaller --name Timewinder --onefile --windowed --icon=icon.icon main.py
 
-# TODO: Add right click event to shorten cooldown, Consider cacheing icons for faster startup, Consider adding regular spell tracking
+# TODO: Consider cacheing icons for faster startup, Consider adding regular spell tracking
 
 
 class Timewinder():
@@ -31,7 +31,6 @@ class Timewinder():
         self.app.bind_refresh(self.refresh)
         self.gtt.add_ten_min_observer_callback(self._ten_minute_callback)
         self.app.root.mainloop()
-        # self.quit()
 
     def refresh(self):
         self.gtt.in_game = True
@@ -46,14 +45,19 @@ class Timewinder():
             self.spell_tracker.enemy_list, self.app.row_widgets_container)
         self.gtt.in_game = True
 
-    def update_and_start_cooldown(self, enemy: EnemyData, spell_used: str):
+    def update_and_start_cooldown(self, event, enemy: EnemyData, spell_used: str):
         if not self.gtt.in_game:
             return
-        self.spell_tracker.calculate_enemy_summoner_cooldowns(enemy)
-        # self.cooldown_timer.start_cooldown(
-        #     enemy, spell_used, cooldown_text_widget)
-        self.cooldown_timer.trigger_cooldown(
-            enemy, spell_used)
+        if event.num == 3:
+            self.cooldown_timer.advance_cooldown(enemy, spell_used)
+        elif event.num == 2:
+            self.cooldown_timer.advance_cooldown(
+                enemy, spell_used, large_advance=True)
+        else:
+            self.spell_tracker.calculate_enemy_summoner_cooldowns(enemy)
+            self.cooldown_timer.trigger_cooldown(
+                enemy, spell_used)
+            return None
 
     def _ten_minute_callback(self):
         self.spell_tracker.calculate_all_enemy_summoner_cooldowns()
@@ -62,9 +66,6 @@ class Timewinder():
 
     def quit(self):
         self.gtt.quit()
-        # self.cooldown_timer.quit()
-        # sleep(1)
-        # self.app.root.quit()
         sys.exit()
 
     def fetch_icons(self, enemy_list: list[EnemyData]):

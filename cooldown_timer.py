@@ -15,6 +15,10 @@ class CooldownTimer:
         self.rush = 5
         self.gtt.add_game_time_observer_callback(self._game_time_callback)
         self.gtt.add_in_game_observer_callback(self._in_game_callback)
+        # How much to advance on right click
+        self.advance_step = 1
+        # How much to advance on middle click
+        self.large_advance_step = 10
 
     def _game_time_callback(self, game_time: float):
         if self.stop_cooldowns.is_set():
@@ -104,6 +108,17 @@ class CooldownTimer:
                                 active_summoner_spell)
         self.update_cooldowns()
         return None
+
+    def advance_cooldown(self, enemy: EnemyData, summoner_spell_name: str, large_advance=False) -> None:
+        if not self.gtt.in_game:
+            assert False, 'Not in game!'
+        cooldown = self.find_cooldown(
+            enemy['champion_name'], summoner_spell_name)
+        if large_advance:
+            cooldown['start_time'] -= self.large_advance_step
+        else:
+            cooldown['start_time'] -= self.advance_step
+        self.update_cooldowns()
 
     def reset_cooldown(self, cooldown: CooldownData) -> None:
         cooldown['on_cooldown'] = False

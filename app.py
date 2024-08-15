@@ -73,7 +73,7 @@ class App():
         return
 
     # def test(self, event, a, b):
-    #     print(type(event.num), a, b)
+    #     print(event.num, a, b)
 
     def refresh(self):
         print('refresh')
@@ -133,8 +133,8 @@ class App():
         self.configure_text(row_widgets['summoner_spell_one_image'],
                             enemy['summoner_spells'][0]['name'])
         row_widgets['summoner_spell_one_image'].configure(image='')
-        self.configure_button(row_widgets['summoner_spell_one_image'], lambda: main_obj.update_and_start_cooldown(
-            enemy, enemy['summoner_spells'][0]['name']))
+        row_widgets['summoner_spell_one_image'].bind('<Button>', lambda event: main_obj.update_and_start_cooldown(
+            event, enemy, enemy['summoner_spells'][0]['name']))
         # Summoner 1 Cooldown
         self.configure_text(
             row_widgets['summoner_spell_one_cooldown'], 'Ready')
@@ -142,8 +142,8 @@ class App():
         self.configure_text(row_widgets['summoner_spell_two_image'],
                             enemy['summoner_spells'][1]['name'])
         row_widgets['summoner_spell_two_image'].configure(image='')
-        self.configure_button(row_widgets['summoner_spell_two_image'], lambda: main_obj.update_and_start_cooldown(
-            enemy, enemy['summoner_spells'][1]['name']))
+        row_widgets['summoner_spell_two_image'].bind('<Button>', lambda event: main_obj.update_and_start_cooldown(
+            event, enemy, enemy['summoner_spells'][1]['name']))
         # Summoner 2 Cooldown
         self.configure_text(
             row_widgets['summoner_spell_two_cooldown'], 'Ready')
